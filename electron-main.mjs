@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, Menu } from 'electron';
+import { app, BrowserWindow, shell, Menu, nativeTheme } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startServer, stopServer } from './server.mjs';
@@ -116,6 +116,7 @@ function setupMenu() {
 }
 
 app.whenReady().then(async () => {
+  nativeTheme.themeSource = 'dark';
   setupMenu();
 
   try {
