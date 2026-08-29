@@ -2647,6 +2647,7 @@
         const statusBox = $('api-test-status');
         if (!url) {
           statusBox.className = 'test-status-box err';
+          statusBox.style.display = 'flex';
           statusBox.innerHTML = '⚠️ 请先输入有效的 API 地址';
           return;
         }
@@ -2656,24 +2657,32 @@
         statusBox.innerHTML = '⏳ 正在测试与 Shadowrocket 端点的连通性…';
 
         try {
-          // Send test request to backend to probe
-          const res = await fetch('/api/config', {
+          const res = await fetch('/api/test', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ upstreamUrl: url })
+            body: JSON.stringify({ url })
           });
-          const data = await res.json();
-          if (res.ok) {
+          
+          let data;
+          const contentType = res.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            data = await res.json();
+          } else {
+            const text = await res.text();
+            throw new Error(text === 'Not found' ? '检测到旧版本服务运行中，请在终端重启 Node 服务 (Ctrl+C 后运行 npm start)' : text);
+          }
+
+          if (res.ok && data.ok) {
             statusBox.className = 'test-status-box ok';
-            statusBox.innerHTML = `✓ 已成功应用并连接到端点: ${esc(url)}`;
-            showToast('已切换至新端点并重新连接', '🟢');
+            statusBox.innerHTML = `✓ 连通性测试成功 (握手耗时: ${data.cost}ms)，Shadowrocket 日志服务正常在线`;
+            showToast('Shadowrocket API 连通正常', '🟢');
           } else {
             statusBox.className = 'test-status-box err';
-            statusBox.innerHTML = `✗ 错误: ${esc(data.error || '连接失败')}`;
+            statusBox.innerHTML = `✗ ${esc(data.error || '连接失败')}`;
           }
         } catch (e) {
           statusBox.className = 'test-status-box err';
-          statusBox.innerHTML = `✗ 请求失败: ${esc(e.message)}`;
+          statusBox.innerHTML = `✗ 测试失败: ${esc(e.message)}`;
         }
       }
 
@@ -2690,8 +2699,17 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ upstreamUrl: url })
           });
-          const data = await res.json();
-          if (res.ok) {
+
+          let data;
+          const contentType = res.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            data = await res.json();
+          } else {
+            const text = await res.text();
+            throw new Error(text === 'Not found' ? '检测到旧版本服务运行中，请在终端重启 Node 服务 (Ctrl+C 后运行 npm start)' : text);
+          }
+
+          if (res.ok && data.success) {
             showToast('Shadowrocket API 地址已保存并重连', '🚀');
             closeApiModal();
           } else {

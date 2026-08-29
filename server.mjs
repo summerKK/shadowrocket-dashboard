@@ -70,18 +70,18 @@ async function connectUpstream() {
 
   try {
     upstream = await fetch(upstreamUrl, { signal: controller.signal });
-    if (!upstream.ok || !upstream.body) throw new Error(`Shadowrocket returned ${upstream.status}`);
+    if (!upstream.ok || !upstream.body) throw new Error(`Shadowrocket 返回异常状态码: ${upstream.status}`);
     broadcast({ type: 'status', connected: true, upstreamUrl });
     const reader = upstream.body.getReader();
     const decoder = new TextDecoder();
     let pending = '';
     while (true) {
       const { done, value } = await reader.read();
-      pending += decoder.decode(value || new Uint8Array(), { stream: !done });
+      if (done) break;
+      pending += decoder.decode(value || new Uint8Array(), { stream: true });
       const lines = pending.split(/\r?\n/);
       pending = lines.pop() || '';
       for (const line of lines) emitLine(line);
-      if (done) break;
     }
   } catch (error) {
     if (controller.signal.aborted) return;
@@ -91,7 +91,7 @@ async function connectUpstream() {
       upstream = undefined;
       currentAbortController = undefined;
       clearTimeout(reconnectTimer);
-      reconnectTimer = setTimeout(connectUpstream, 1500);
+      reconnectTimer = setTimeout(connectUpstream, 1000);
     }
   }
 }
@@ -135,6 +135,48 @@ const server = http.createServer(async (request, response) => {
       upstreamUrl,
     });
     request.on('close', () => clients.delete(response));
+    return;
+  }
+
+  // API to test connectivity with Shadowrocket
+  if (url.pathname === '/api/test' && request.method === 'POST') {
+    try {
+      const body = await readJsonBody(request);
+      const testUrl = String(body.url || upstreamUrl).trim();
+      if (!testUrl || (!testUrl.startsWith('http://') && !testUrl.startsWith('https://'))) {
+        response.writeHead(400, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify({ ok: false, error: '无效的 API 地址，必须以 http:// 或 https:// 开头' }));
+        return;
+      }
+
+      const testController = new AbortController();
+      const testTimeout = setTimeout(() => testController.abort(), 2500);
+      const startTime = Date.now();
+
+      try {
+        const testRes = await fetch(testUrl, { signal: testController.signal });
+        clearTimeout(testTimeout);
+        const cost = Date.now() - startTime;
+        if (testRes.ok || testRes.status === 200) {
+          response.writeHead(200, { 'Content-Type': 'application/json' });
+          response.end(JSON.stringify({ ok: true, status: testRes.status, cost, url: testUrl }));
+        } else {
+          response.writeHead(200, { 'Content-Type': 'application/json' });
+          response.end(JSON.stringify({ ok: false, status: testRes.status, error: `Shadowrocket 响应异常状态码: HTTP ${testRes.status}` }));
+        }
+      } catch (fetchErr) {
+        clearTimeout(testTimeout);
+        const isTimeout = fetchErr.name === 'AbortError';
+        response.writeHead(200, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify({
+          ok: false,
+          error: isTimeout ? '连接超时 (2.5s)，请确认 Shadowrocket 是否已开启「启用日志记录」与「允许访问」' : `无法连接至 ${testUrl} (${fetchErr.message})`
+        }));
+      }
+    } catch (err) {
+      response.writeHead(400, { 'Content-Type': 'application/json' });
+      response.end(JSON.stringify({ ok: false, error: err.message }));
+    }
     return;
   }
 
