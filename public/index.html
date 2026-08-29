@@ -1531,7 +1531,7 @@
                   <th style="width: 125px;">路由 / 状态</th>
                   <th style="width: 220px;">命中规则</th>
                   <th style="width: 230px;">出站节点 / 策略</th>
-                  <th style="width: 125px;">应用进程</th>
+                  <th style="width: 135px;">应用 / 服务</th>
                   <th style="width: 60px; text-align: right;">操作</th>
                 </tr>
               </thead>
@@ -2076,28 +2076,78 @@
         return '<span style="color:#64748b">—</span>';
       }
 
-      function formatApp(ua) {
-        if (!ua) return '<span class="app-col" style="color:#64748b;">系统进程</span>';
-        const lower = ua.toLowerCase();
-        if (lower.includes('openai') || lower.includes('chatgpt')) {
-          return '<span class="app-col" style="color:#34d399; font-weight:600;">🤖 ChatGPT</span>';
+      // Domain & Service Fingerprint Database
+      const DOMAIN_APP_MAP = [
+        { test: /chatgpt\.com|oaistatic\.com|oaiusercontent\.com|openai\.com/i, label: '🤖 ChatGPT', color: '#34d399' },
+        { test: /claude\.ai|anthropic\.com/i, label: '🧠 Claude', color: '#f59e0b' },
+        { test: /github\.com|githubusercontent\.com|githubassets\.com|ghcr\.io/i, label: '🐙 GitHub', color: '#e2e8f0' },
+        { test: /telegram\.org|t\.me|telesco\.pe/i, label: '✈️ Telegram', color: '#38bdf8' },
+        { test: /discord\.gg|discord\.com|discordapp\.com/i, label: '💬 Discord', color: '#818cf8' },
+        { test: /twitter\.com|x\.com|twimg\.com|t\.co/i, label: '🐦 X / Twitter', color: '#38bdf8' },
+        { test: /youtube\.com|googlevideo\.com|ytimg\.com|youtu\.be/i, label: '▶️ YouTube', color: '#f87171' },
+        { test: /google\.com|gstatic\.com|googleapis\.com|1e100\.net|googleusercontent\.com/i, label: '🌐 Google', color: '#60a5fa' },
+        { test: /apple\.com|icloud\.com|mzstatic\.com|aaplimg\.com|apple-cloudkit\.com/i, label: '🍎 Apple', color: '#cbd5e1' },
+        { test: /microsoft\.com|live\.com|office\.com|azure\.com|windows\.com|msftconnecttest\.com/i, label: '🪟 Microsoft', color: '#38bdf8' },
+        { test: /v2ex\.com/i, label: '⚪️ V2EX', color: '#94a3b8' },
+        { test: /bilibili\.com|bilivideo\.com|hdslb\.com|biliapi\.net/i, label: '📺 哔哩哔哩', color: '#38bdf8' },
+        { test: /qq\.com|weixin\.qq\.com|tencent\.com|gtimg\.cn|qpic\.cn/i, label: '🐧 腾讯 / 微信', color: '#22c55e' },
+        { test: /zhihu\.com|zhimg\.com/i, label: '💡 知乎', color: '#0284c7' },
+        { test: /taobao\.com|alipay\.com|aliyun\.com|alicdn\.com|tmall\.com/i, label: '🛒 阿里 / 淘宝', color: '#f97316' },
+        { test: /baidu\.com|bdstatic\.com|baidupcs\.com/i, label: '🐾 百度', color: '#3b82f6' },
+        { test: /bytedance\.com|tiktok\.com|douyin\.com|snssdk\.com/i, label: '🎵 抖音 / TikTok', color: '#ec4899' },
+        { test: /netflix\.com|nflxvideo\.net|nflximg\.net/i, label: '🎬 Netflix', color: '#ef4444' },
+        { test: /spotify\.com|scdn\.co/i, label: '🎵 Spotify', color: '#22c55e' },
+        { test: /notion\.so|notion\.site/i, label: '📝 Notion', color: '#e2e8f0' },
+        { test: /figma\.com/i, label: '🎨 Figma', color: '#c084fc' },
+        { test: /steamcommunity\.com|steampowered\.com|steamstatic\.com/i, label: '🎮 Steam', color: '#60a5fa' },
+        { test: /epicgames\.com/i, label: '🎮 Epic Games', color: '#cbd5e1' },
+        { test: /docker\.com|docker\.io/i, label: '🐳 Docker', color: '#38bdf8' },
+        { test: /npmjs\.org|yarnpkg\.com|registry\.npmjs\.org/i, label: '📦 npm', color: '#fb7185' },
+        { test: /reddit\.com|redd\.it/i, label: '🤖 Reddit', color: '#fb923c' },
+        { test: /amazon\.com|aws\.amazon\.com|cloudfront\.net/i, label: '📦 AWS / Amazon', color: '#fbbf24' },
+        { test: /cloudflare\.com|cloudflare-dns\.com/i, label: '🛡 Cloudflare', color: '#f97316' }
+      ];
+
+      function formatApp(item) {
+        const ua = item?.ua || '';
+        const host = item?.host || '';
+        const rule = item?.rule || '';
+
+        // 1. Match from User-Agent if available
+        if (ua) {
+          const lower = ua.toLowerCase();
+          if (lower.includes('openai') || lower.includes('chatgpt')) return '<span class="app-col" style="color:#34d399; font-weight:600;">🤖 ChatGPT</span>';
+          if (lower.includes('claude') || lower.includes('anthropic')) return '<span class="app-col" style="color:#f59e0b; font-weight:600;">🧠 Claude</span>';
+          if (lower.includes('chrome')) return '<span class="app-col" style="color:#60a5fa; font-weight:500;">🌐 Chrome</span>';
+          if (lower.includes('safari') && !lower.includes('chrome')) return '<span class="app-col" style="color:#38bdf8; font-weight:500;">🧭 Safari</span>';
+          if (lower.includes('firefox')) return '<span class="app-col" style="color:#fb923c; font-weight:500;">🦊 Firefox</span>';
+          if (lower.includes('edge') || lower.includes('edg/')) return '<span class="app-col" style="color:#38bdf8; font-weight:500;">🌊 Edge</span>';
+          if (lower.includes('telegram')) return '<span class="app-col" style="color:#38bdf8; font-weight:600;">✈️ Telegram</span>';
+          if (lower.includes('discord')) return '<span class="app-col" style="color:#818cf8; font-weight:600;">💬 Discord</span>';
+          if (lower.includes('wechat') || lower.includes('micromessenger')) return '<span class="app-col" style="color:#22c55e; font-weight:600;">🟢 微信</span>';
+          if (lower.includes('curl') || lower.includes('git/')) return `<span class="app-col" style="color:#fbbf24;">⚡️ ${esc(ua.split('/')[0])}</span>`;
+          if (lower.includes('npm') || lower.includes('yarn') || lower.includes('pnpm') || lower.includes('node')) return '<span class="app-col" style="color:#fb7185;">📦 npm/Node</span>';
+          return `<span class="app-col" title="${esc(ua)}">${esc(ua.split('/')[0])}</span>`;
         }
-        if (lower.includes('chrome')) {
-          return '<span class="app-col" style="color:#60a5fa; font-weight:500;">🌐 Chrome</span>';
+
+        // 2. Smart Fingerprint Recognition from target Host / Rule
+        const targetStr = `${host} ${rule}`;
+        for (const fp of DOMAIN_APP_MAP) {
+          if (fp.test.test(targetStr)) {
+            return `<span class="app-col" style="color:${fp.color}; font-weight:500;">${fp.label}</span>`;
+          }
         }
-        if (lower.includes('safari') && !lower.includes('chrome')) {
-          return '<span class="app-col" style="color:#38bdf8; font-weight:500;">🧭 Safari</span>';
+
+        // 3. Clean fallback: Main site domain or subtle indicator
+        if (host) {
+          const parts = host.split('.');
+          if (parts.length >= 2 && !host.match(/^\d+\.\d+\.\d+\.\d+$/)) {
+            const mainDomain = parts.slice(-2).join('.');
+            return `<span class="app-col" style="color:var(--text-muted); font-size:11px;" title="${esc(host)}">🌐 ${esc(mainDomain)}</span>`;
+          }
         }
-        if (lower.includes('telegram')) {
-          return '<span class="app-col" style="color:#38bdf8; font-weight:600;">✈️ Telegram</span>';
-        }
-        if (lower.includes('discord')) {
-          return '<span class="app-col" style="color:#818cf8; font-weight:600;">💬 Discord</span>';
-        }
-        if (lower.includes('curl') || lower.includes('git/')) {
-          return `<span class="app-col" style="color:#fbbf24;">⚡️ ${esc(ua.split('/')[0])}</span>`;
-        }
-        return `<span class="app-col" title="${esc(ua)}">${esc(ua.split('/')[0])}</span>`;
+
+        return '<span class="app-col" style="color:var(--text-muted); font-size:11px;">TCP 流量</span>';
       }
 
       // Render Connection Table
@@ -2176,7 +2226,7 @@
                 ${formatOutbound(x)}
               </td>
               <td>
-                ${formatApp(x.ua)}
+                ${formatApp(x)}
               </td>
               <td style="text-align: right;">
                 <button class="action-btn" onclick="event.stopPropagation(); openDrawer('${esc(x.id)}')">
