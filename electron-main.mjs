@@ -21,7 +21,7 @@ async function createWindow(port) {
     titleBarStyle: 'hiddenInset',
     vibrancy: 'under-window',
     visualEffectState: 'active',
-    trafficLightPosition: { x: 16, y: 16 },
+    trafficLightPosition: { x: 18, y: 18 },
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -29,8 +29,8 @@ async function createWindow(port) {
     },
   });
 
-  // Load local dashboard
-  await mainWindow.loadURL(`http://127.0.0.1:${port}`);
+  // Load local dashboard with electron flag
+  await mainWindow.loadURL(`http://127.0.0.1:${port}?electron=1`);
 
   // Open external links in user's default browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {

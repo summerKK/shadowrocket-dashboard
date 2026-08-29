@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Shadowrocket Connections Dashboard</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366f1'><path d='M13.13 2.55a1.5 1.5 0 0 0-2.26 0L4.2 9.22A1.5 1.5 0 0 0 4.14 11l4.86 6.48a1.5 1.5 0 0 0 2 .4l7.6-5.06a1.5 1.5 0 0 0 .5-1.92l-6-8.35ZM8.5 13a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z'/></svg>" />
+    <script>
+      if (navigator.userAgent.includes('Electron') || location.search.includes('electron=1') || window.process?.type === 'renderer') {
+        document.documentElement.classList.add('is-electron');
+      }
+    </script>
     <style>
       /* Theme 1: Aurora (Default) */
       :root, [data-theme="aurora"] {
@@ -196,8 +201,9 @@
       .status-pill {
         -webkit-app-region: no-drag;
       }
+      html.is-electron .app-header,
       body.is-electron .app-header {
-        padding-left: 88px;
+        padding-left: 96px;
       }
 
       .logo-group {
