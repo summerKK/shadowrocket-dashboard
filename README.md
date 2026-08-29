@@ -56,12 +56,16 @@ PORT=9000 SHADOWROCKET_LOG_URL=http://127.0.0.1:1080/api/log npm start
 
 ## ⚙️ Shadowrocket 配置说明
 
-若面板显示 **“未连接 Shadowrocket”** 或无法捕获流量，请检查 Shadowrocket 的诊断日志配置：
+若面板显示 **“未连接 Shadowrocket”** 或无法捕获流量，请按以下步骤开启 Shadowrocket 的诊断日志服务：
 
 1. 打开 **Shadowrocket** 客户端。
-2. 进入 **「设置 (Settings)」** → **「诊断与日志 (Diagnostics & Logs)」**。
-3. 确保已开启 **「开启日志 (Enable Logging)」** 及 **「本地 API / 日志服务」**。
-4. 默认日志监听地址为 `http://127.0.0.1:1080/api/log`。
+2. 进入 **「设置 (Settings)」** → **「诊断 (Diagnostics)」**。
+3. 确保开启 **「启用日志记录」** 与 **「允许访问」**（如下图红框所示）。
+4. 确认日志服务地址（通常为 `http://127.0.0.1:1080/api/log` 或局域网 IP `http://10.0.0.x:1080/api/log`）。
+
+<p align="center">
+  <img src="./docs/images/shadowrocket-settings.png" alt="Shadowrocket 诊断日志设置说明" width="750" style="border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.3);" />
+</p>
 
 > 💡 **关于 HTTPS 完整路径显示说明**：
 > - 未开启 HTTPS 解密 (MITM) 时，由于 TLS 握手特性，面板仅能解析出访问的目标域名及端口（例如 `api.github.com:443`）。
