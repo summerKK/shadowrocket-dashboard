@@ -1,0 +1,2698 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shadowrocket Connections Dashboard</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366f1'><path d='M13.13 2.55a1.5 1.5 0 0 0-2.26 0L4.2 9.22A1.5 1.5 0 0 0 4.14 11l4.86 6.48a1.5 1.5 0 0 0 2 .4l7.6-5.06a1.5 1.5 0 0 0 .5-1.92l-6-8.35ZM8.5 13a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z'/></svg>" />
+    <style>
+      /* Theme 1: Aurora (Default) */
+      :root, [data-theme="aurora"] {
+        --bg-main: #090d16;
+        --bg-main-image: radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
+                         radial-gradient(at 100% 0%, rgba(56, 189, 248, 0.08) 0px, transparent 50%),
+                         radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
+        --bg-card: rgba(18, 24, 38, 0.7);
+        --bg-card-hover: rgba(26, 35, 54, 0.85);
+        --bg-header: rgba(9, 13, 22, 0.88);
+        --bg-table-head: #0b0f19;
+        --bg-input: #0f172a;
+        --bg-drawer: #0d121f;
+        --border-subtle: rgba(255, 255, 255, 0.08);
+        --border-focus: rgba(99, 102, 241, 0.5);
+        --text-primary: #f8fafc;
+        --text-secondary: #94a3b8;
+        --text-muted: #64748b;
+        --accent-indigo: #6366f1;
+        --accent-indigo-glow: rgba(99, 102, 241, 0.25);
+        --proxy-bg: rgba(16, 185, 129, 0.12);
+        --proxy-border: rgba(16, 185, 129, 0.35);
+        --proxy-text: #34d399;
+        --direct-bg: rgba(14, 165, 233, 0.12);
+        --direct-border: rgba(14, 165, 233, 0.35);
+        --direct-text: #38bdf8;
+        --reject-bg: rgba(244, 63, 94, 0.12);
+        --reject-border: rgba(244, 63, 94, 0.35);
+        --reject-text: #fb7185;
+        --active-green: #22c55e;
+        --closed-gray: #64748b;
+        --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+        --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      }
+
+      /* Theme 2: Tokyo Night */
+      [data-theme="tokyo-night"] {
+        --bg-main: #1a1b26;
+        --bg-main-image: radial-gradient(at 0% 0%, rgba(122, 162, 247, 0.15) 0px, transparent 50%),
+                         radial-gradient(at 100% 0%, rgba(187, 154, 247, 0.12) 0px, transparent 50%),
+                         radial-gradient(at 50% 100%, rgba(115, 218, 202, 0.06) 0px, transparent 50%);
+        --bg-card: rgba(36, 40, 59, 0.75);
+        --bg-card-hover: rgba(41, 46, 66, 0.9);
+        --bg-header: rgba(26, 27, 38, 0.9);
+        --bg-table-head: #161622;
+        --bg-input: #1f2335;
+        --bg-drawer: #1f2335;
+        --border-subtle: rgba(122, 162, 247, 0.14);
+        --border-focus: rgba(122, 162, 247, 0.6);
+        --text-primary: #c0caf5;
+        --text-secondary: #9aa5ce;
+        --text-muted: #565f89;
+        --accent-indigo: #7aa2f7;
+        --accent-indigo-glow: rgba(122, 162, 247, 0.3);
+        --proxy-bg: rgba(115, 218, 202, 0.14);
+        --proxy-border: rgba(115, 218, 202, 0.35);
+        --proxy-text: #73daca;
+        --direct-bg: rgba(122, 162, 247, 0.14);
+        --direct-border: rgba(122, 162, 247, 0.35);
+        --direct-text: #7aa2f7;
+        --reject-bg: rgba(247, 118, 142, 0.14);
+        --reject-border: rgba(247, 118, 142, 0.35);
+        --reject-text: #f7768e;
+      }
+
+      /* Theme 3: Cyberpunk Neon */
+      [data-theme="cyberpunk"] {
+        --bg-main: #0c0714;
+        --bg-main-image: radial-gradient(at 0% 0%, rgba(236, 72, 153, 0.18) 0px, transparent 50%),
+                         radial-gradient(at 100% 0%, rgba(6, 182, 212, 0.15) 0px, transparent 50%),
+                         radial-gradient(at 50% 100%, rgba(168, 85, 247, 0.1) 0px, transparent 50%);
+        --bg-card: rgba(24, 14, 40, 0.78);
+        --bg-card-hover: rgba(36, 20, 60, 0.92);
+        --bg-header: rgba(14, 8, 25, 0.92);
+        --bg-table-head: #140924;
+        --bg-input: #1b0f30;
+        --bg-drawer: #150a28;
+        --border-subtle: rgba(236, 72, 153, 0.22);
+        --border-focus: rgba(236, 72, 153, 0.7);
+        --text-primary: #fdf4ff;
+        --text-secondary: #e879f9;
+        --text-muted: #a855f7;
+        --accent-indigo: #ec4899;
+        --accent-indigo-glow: rgba(236, 72, 153, 0.4);
+        --proxy-bg: rgba(6, 182, 212, 0.15);
+        --proxy-border: rgba(6, 182, 212, 0.45);
+        --proxy-text: #22d3ee;
+        --direct-bg: rgba(168, 85, 247, 0.18);
+        --direct-border: rgba(168, 85, 247, 0.45);
+        --direct-text: #c084fc;
+        --reject-bg: rgba(244, 63, 94, 0.2);
+        --reject-border: rgba(244, 63, 94, 0.5);
+        --reject-text: #fb7185;
+      }
+
+      /* Theme 4: OLED Pure Black */
+      [data-theme="oled"] {
+        --bg-main: #000000;
+        --bg-main-image: none;
+        --bg-card: #0c0c0e;
+        --bg-card-hover: #16161a;
+        --bg-header: rgba(0, 0, 0, 0.92);
+        --bg-table-head: #0c0c0e;
+        --bg-input: #121216;
+        --bg-drawer: #0a0a0c;
+        --border-subtle: rgba(255, 255, 255, 0.12);
+        --border-focus: rgba(255, 255, 255, 0.4);
+        --text-primary: #ffffff;
+        --text-secondary: #a1a1aa;
+        --text-muted: #71717a;
+        --accent-indigo: #e4e4e7;
+        --accent-indigo-glow: rgba(255, 255, 255, 0.15);
+        --proxy-bg: rgba(34, 197, 94, 0.12);
+        --proxy-border: rgba(34, 197, 94, 0.35);
+        --proxy-text: #4ade80;
+        --direct-bg: rgba(59, 130, 246, 0.12);
+        --direct-border: rgba(59, 130, 246, 0.35);
+        --direct-text: #60a5fa;
+        --reject-bg: rgba(239, 68, 68, 0.12);
+        --reject-border: rgba(239, 68, 68, 0.35);
+        --reject-text: #f87171;
+      }
+
+      /* Theme 5: Clean Light */
+      [data-theme="nordic-light"] {
+        --bg-main: #f8fafc;
+        --bg-main-image: radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.06) 0px, transparent 50%),
+                         radial-gradient(at 100% 0%, rgba(14, 165, 233, 0.05) 0px, transparent 50%),
+                         radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.04) 0px, transparent 50%);
+        --bg-card: #ffffff;
+        --bg-card-hover: #f8fafc;
+        --bg-header: rgba(255, 255, 255, 0.94);
+        --bg-table-head: #f1f5f9;
+        --bg-input: #f1f5f9;
+        --bg-drawer: #ffffff;
+        --border-subtle: rgba(0, 0, 0, 0.08);
+        --border-focus: rgba(79, 70, 229, 0.5);
+        --text-primary: #0f172a;
+        --text-secondary: #475569;
+        --text-muted: #94a3b8;
+        --accent-indigo: #4f46e5;
+        --accent-indigo-glow: rgba(79, 70, 229, 0.2);
+        --proxy-bg: rgba(16, 185, 129, 0.12);
+        --proxy-border: rgba(16, 185, 129, 0.35);
+        --proxy-text: #059669;
+        --direct-bg: rgba(14, 165, 233, 0.12);
+        --direct-border: rgba(14, 165, 233, 0.35);
+        --direct-text: #0284c7;
+        --reject-bg: rgba(244, 63, 94, 0.12);
+        --reject-border: rgba(244, 63, 94, 0.35);
+        --reject-text: #e11d48;
+      }
+
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        background-color: var(--bg-main);
+        background-image: var(--bg-main-image);
+        background-attachment: fixed;
+        color: var(--text-primary);
+        font-family: var(--font-sans);
+        min-height: 100vh;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+        transition: background-color 0.25s ease, color 0.25s ease;
+      }
+
+      /* Layout */
+      .app-header {
+        position: sticky;
+        top: 0;
+        z-index: 40;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        background: var(--bg-header);
+        border-bottom: 1px solid var(--border-subtle);
+        padding: 14px 28px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .logo-group {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .logo-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px var(--accent-indigo-glow);
+        color: white;
+        flex-shrink: 0;
+      }
+      .logo-icon svg { width: 22px; height: 22px; }
+      .app-title {
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .version-tag {
+        font-size: 11px;
+        font-weight: 600;
+        background: rgba(255, 255, 255, 0.08);
+        padding: 2px 7px;
+        border-radius: 6px;
+        color: var(--text-secondary);
+      }
+      .app-subtitle {
+        font-size: 12px;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .btn-api-edit {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--border-subtle);
+        color: var(--text-secondary);
+        border-radius: 6px;
+        padding: 2px 7px;
+        font-size: 11px;
+        font-family: var(--font-sans);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.2s;
+      }
+      .btn-api-edit:hover {
+        background: rgba(99, 102, 241, 0.18);
+        border-color: var(--border-focus);
+        color: #c7d2fe;
+      }
+
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 14px;
+        border-radius: 9999px;
+        background: rgba(15, 23, 42, 0.8);
+        border: 1px solid var(--border-subtle);
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .status-pill:hover {
+        border-color: var(--border-focus);
+        background: rgba(26, 35, 54, 0.9);
+      }
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #ef4444;
+        box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+        transition: all 0.3s;
+      }
+      .status-dot.ok {
+        background-color: #10b981;
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.8);
+        animation: pulse-dot 2s infinite ease-in-out;
+      }
+      @keyframes pulse-dot {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.2); opacity: 0.8; }
+      }
+
+      .preset-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .preset-chip {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border-subtle);
+        border-radius: 6px;
+        padding: 4px 8px;
+        font-size: 11px;
+        font-family: var(--font-mono);
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .preset-chip:hover {
+        background: rgba(99, 102, 241, 0.18);
+        border-color: var(--border-focus);
+        color: #e0e7ff;
+      }
+      .test-status-box {
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-size: 12px;
+        margin-top: 14px;
+        display: none;
+        align-items: center;
+        gap: 8px;
+      }
+      .test-status-box.ok {
+        display: flex;
+        background: var(--proxy-bg);
+        border: 1px solid var(--proxy-border);
+        color: var(--proxy-text);
+      }
+      .test-status-box.err {
+        display: flex;
+        background: var(--reject-bg);
+        border: 1px solid var(--reject-border);
+        color: var(--reject-text);
+      }
+
+      /* View Tabs */
+      .nav-tabs {
+        display: flex;
+        background: var(--bg-input);
+        border: 1px solid var(--border-subtle);
+        border-radius: 8px;
+        padding: 3px;
+        gap: 2px;
+      }
+      .nav-tab {
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        padding: 6px 14px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+      }
+      .nav-tab:hover {
+        color: var(--text-primary);
+      }
+      .nav-tab.active {
+        background: rgba(99, 102, 241, 0.18);
+        color: var(--accent-indigo);
+        border: 1px solid rgba(99, 102, 241, 0.3);
+      }
+
+      /* Theme Switcher Dropdown */
+      .theme-dropdown-wrapper {
+        position: relative;
+      }
+      .btn-theme-selector {
+        background: var(--bg-input);
+        border: 1px solid var(--border-subtle);
+        color: var(--text-secondary);
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 12px;
+        font-weight: 500;
+        font-family: var(--font-sans);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+      }
+      .btn-theme-selector:hover {
+        border-color: var(--border-focus);
+        color: var(--text-primary);
+      }
+      .theme-dropdown-menu {
+        position: absolute;
+        top: calc(100% + 6px);
+        right: 0;
+        background: var(--bg-card);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid var(--border-subtle);
+        border-radius: 10px;
+        padding: 6px;
+        width: 195px;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+        display: none;
+        flex-direction: column;
+        gap: 2px;
+        z-index: 100;
+        animation: fadeInDown 0.15s ease;
+      }
+      .theme-dropdown-menu.show {
+        display: flex;
+      }
+      .theme-option {
+        padding: 8px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: all 0.15s;
+        user-select: none;
+      }
+      .theme-option:hover {
+        background: rgba(99, 102, 241, 0.15);
+        color: var(--text-primary);
+      }
+      .theme-option.active {
+        background: rgba(99, 102, 241, 0.2);
+        color: var(--text-primary);
+        font-weight: 600;
+      }
+      .theme-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      @keyframes fadeInDown {
+        from { opacity: 0; transform: translateY(-4px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      .btn-icon {
+        background: var(--bg-input);
+        border: 1px solid var(--border-subtle);
+        color: var(--text-secondary);
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .btn-icon:hover {
+        color: var(--text-primary);
+        border-color: var(--border-focus);
+        background: rgba(99, 102, 241, 0.1);
+      }
+
+      /* Main container */
+      .container {
+        padding: 24px 28px 40px;
+        max-width: 1600px;
+        margin: 0 auto;
+      }
+
+      /* Stats Hero Grid */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(160px, 1fr));
+        gap: 14px;
+        margin-bottom: 20px;
+      }
+
+      .stat-card {
+        background: var(--bg-card);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--border-subtle);
+        border-radius: 12px;
+        padding: 16px 18px;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+      }
+      .stat-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(255, 255, 255, 0.15);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+      }
+      .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: transparent;
+      }
+      .stat-card.card-total::before { background: linear-gradient(90deg, #6366f1, #818cf8); }
+      .stat-card.card-proxy::before { background: linear-gradient(90deg, #10b981, #34d399); }
+      .stat-card.card-direct::before { background: linear-gradient(90deg, #0ea5e9, #38bdf8); }
+      .stat-card.card-reject::before { background: linear-gradient(90deg, #f43f5e, #fb7185); }
+      .stat-card.card-events::before { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+
+      .stat-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+      .stat-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .stat-icon {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-secondary);
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .stat-value-group {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+      }
+      .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        font-family: var(--font-sans);
+        color: var(--text-primary);
+      }
+      .stat-sub {
+        font-size: 12px;
+        font-weight: 500;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text-secondary);
+      }
+      .card-proxy .stat-sub { color: #34d399; background: var(--proxy-bg); }
+      .card-direct .stat-sub { color: #38bdf8; background: var(--direct-bg); }
+      .card-reject .stat-sub { color: #fb7185; background: var(--reject-bg); }
+
+      /* Control Toolbar */
+      .toolbar {
+        background: var(--bg-card);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--border-subtle);
+        border-radius: 12px;
+        padding: 12px 16px;
+        margin-bottom: 16px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+        min-width: 320px;
+      }
+
+      .search-box {
+        position: relative;
+        flex: 1;
+        min-width: 220px;
+      }
+      .search-icon {
+        position: absolute;
+        left: 11px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 16px;
+        height: 16px;
+        color: var(--text-muted);
+        pointer-events: none;
+      }
+      .search-input {
+        width: 100%;
+        background: var(--bg-input);
+        border: 1px solid var(--border-subtle);
+        border-radius: 8px;
+        padding: 9px 36px 9px 34px;
+        color: var(--text-primary);
+        font-size: 13px;
+        font-family: inherit;
+        outline: none;
+        transition: all 0.2s;
+      }
+      .search-input:focus {
+        border-color: var(--accent-indigo);
+        box-shadow: 0 0 0 3px var(--accent-indigo-glow);
+      }
+      .search-clear {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        font-size: 14px;
+        cursor: pointer;
+        padding: 2px;
+        display: none;
+      }
+      .search-clear:hover { color: var(--text-primary); }
+      .search-shortcut {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 11px;
+        font-family: var(--font-mono);
+        color: var(--text-muted);
+        background: rgba(255, 255, 255, 0.06);
+        padding: 2px 5px;
+        border-radius: 4px;
+        border: 1px solid var(--border-subtle);
+        pointer-events: none;
+      }
+
+      /* Filter segment pills */
+      .segment-control {
+        display: flex;
+        background: var(--bg-input);
+        border: 1px solid var(--border-subtle);
+        border-radius: 8px;
+        padding: 3px;
+        gap: 2px;
+      }
+      .segment-btn {
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        padding: 5px 11px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .segment-btn:hover { color: var(--text-primary); }
+      .segment-btn.active {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text-primary);
+        font-weight: 600;
+      }
+      .segment-btn.active[data-filter="PROXY"] { background: var(--proxy-bg); color: var(--proxy-text); }
+      .segment-btn.active[data-filter="DIRECT"] { background: var(--direct-bg); color: var(--direct-text); }
+      .segment-btn.active[data-filter="REJECT"] { background: var(--reject-bg); color: var(--reject-text); }
+
+      .select-dropdown {
+        background: var(--bg-input);
+        border: 1px solid var(--border-subtle);
+        border-radius: 8px;
+        padding: 8px 12px;
+        color: var(--text-primary);
+        font-size: 13px;
+        font-family: inherit;
+        outline: none;
+        cursor: pointer;
+        transition: border-color 0.2s;
+      }
+      .select-dropdown:focus { border-color: var(--accent-indigo); }
+
+      .action-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .btn {
+        background: var(--bg-input);
+        border: 1px solid var(--border-subtle);
+        border-radius: 8px;
+        padding: 8px 14px;
+        color: var(--text-primary);
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+      }
+      .btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.2);
+      }
+      .btn-primary {
+        background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+        border-color: #6366f1;
+        color: #ffffff;
+      }
+      .btn-primary:hover {
+        box-shadow: 0 4px 14px var(--accent-indigo-glow);
+        background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
+      }
+      .btn-pause.paused {
+        background: rgba(234, 179, 8, 0.15);
+        border-color: rgba(234, 179, 8, 0.4);
+        color: #facc15;
+      }
+
+      /* Notice hint */
+      .hint-banner {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin: -6px 0 14px 4px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .hint-banner svg { width: 14px; height: 14px; color: #6366f1; flex-shrink: 0; }
+
+      /* Table Container */
+      .table-card {
+        background: var(--bg-card);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--border-subtle);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      }
+      .table-responsive {
+        overflow-x: auto;
+        max-height: calc(100vh - 350px);
+        min-height: 380px;
+      }
+      .table-responsive::-webkit-scrollbar { width: 8px; height: 8px; }
+      .table-responsive::-webkit-scrollbar-track { background: var(--bg-main); }
+      .table-responsive::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
+      .table-responsive::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.25); }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+      }
+
+      th {
+        background: #0b0f19;
+        color: #94a3b8;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        padding: 10px 14px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        user-select: none;
+        white-space: nowrap;
+      }
+      td {
+        padding: 10px 14px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        font-size: 12.5px;
+        color: #cbd5e1;
+        vertical-align: middle;
+      }
+      tr.table-row:hover td {
+        background: rgba(255, 255, 255, 0.03);
+        cursor: pointer;
+      }
+
+      /* Time */
+      .time-col {
+        font-family: var(--font-mono);
+        font-size: 11.5px;
+        color: #94a3b8;
+        white-space: nowrap;
+      }
+
+      /* Host */
+      .host-col {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .host-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: #f8fafc;
+        font-family: var(--font-mono);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+      }
+      .host-meta {
+        font-size: 10.5px;
+        color: #64748b;
+        font-family: var(--font-mono);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        white-space: nowrap;
+      }
+      .tag-proto {
+        font-size: 9px;
+        font-weight: 700;
+        padding: 0 4px;
+        border-radius: 3px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #94a3b8;
+      }
+      .tag-id {
+        color: #818cf8;
+        font-weight: 600;
+      }
+      .copy-btn {
+        opacity: 0;
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        padding: 2px 4px;
+        border-radius: 4px;
+        transition: all 0.15s;
+        display: inline-flex;
+        align-items: center;
+      }
+      tr:hover .copy-btn { opacity: 1; }
+      .copy-btn:hover { color: #ffffff; background: rgba(255, 255, 255, 0.1); }
+
+      /* Route & Status */
+      .route-col {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        white-space: nowrap;
+      }
+      .route-main-line {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+      }
+      .tag-route {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 1px 5px;
+        border-radius: 4px;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+      }
+      .tag-route.proxy {
+        background: rgba(16, 185, 129, 0.15);
+        color: #34d399;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+      }
+      .tag-route.direct {
+        background: rgba(14, 165, 233, 0.15);
+        color: #38bdf8;
+        border: 1px solid rgba(14, 165, 233, 0.3);
+      }
+      .tag-route.reject {
+        background: rgba(244, 63, 94, 0.15);
+        color: #fb7185;
+        border: 1px solid rgba(244, 63, 94, 0.3);
+      }
+      .latency-num {
+        font-size: 10.5px;
+        font-family: var(--font-mono);
+        font-weight: 500;
+      }
+      .latency-num.fast { color: #34d399; }
+      .latency-num.medium { color: #fbbf24; }
+      .latency-num.slow { color: #f87171; }
+      .route-sub-line {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10px;
+        color: #64748b;
+        white-space: nowrap;
+      }
+      .status-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .status-dot.active { background: #22c55e; }
+      .status-dot.closed { background: #64748b; }
+
+      /* Rule */
+      .rule-col {
+        font-family: var(--font-mono);
+        font-size: 11.5px;
+        color: #cbd5e1;
+        max-width: 220px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+      .rule-col:hover {
+        color: #818cf8;
+        text-decoration: underline;
+      }
+
+      /* Node / Strategy */
+      .node-col {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        max-width: 230px;
+        overflow: hidden;
+      }
+      .node-main-text {
+        font-size: 12px;
+        font-weight: 600;
+        color: #f1f5f9;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .node-sub-text {
+        font-size: 10.5px;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .tag-group {
+        color: #c084fc;
+        background: rgba(168, 85, 247, 0.12);
+        padding: 0 4px;
+        border-radius: 3px;
+        font-weight: 500;
+        font-size: 10px;
+      }
+
+      /* App */
+      .app-col {
+        font-size: 12px;
+        color: #cbd5e1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* Action button */
+      .action-btn {
+        font-size: 11px;
+        padding: 3px 8px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        color: #94a3b8;
+        cursor: pointer;
+        transition: all 0.15s;
+        white-space: nowrap;
+      }
+      .action-btn:hover {
+        background: rgba(99, 102, 241, 0.2);
+        border-color: rgba(99, 102, 241, 0.5);
+        color: #ffffff;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-muted);
+      }
+      .empty-icon {
+        width: 48px;
+        height: 48px;
+        margin: 0 auto 12px;
+        opacity: 0.4;
+      }
+      .empty-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        margin-bottom: 6px;
+      }
+      .empty-desc {
+        font-size: 12px;
+        max-width: 400px;
+        margin: 0 auto 16px;
+        line-height: 1.6;
+      }
+
+      /* Raw Stream Terminal View */
+      .stream-view {
+        display: none;
+      }
+      .terminal-container {
+        background: #0b0f19;
+        border: 1px solid var(--border-subtle);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+      }
+      .terminal-header {
+        background: #0f172a;
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--border-subtle);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .terminal-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--font-mono);
+      }
+      .terminal-body {
+        height: 600px;
+        overflow-y: auto;
+        padding: 16px;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        line-height: 1.6;
+        color: #cbd5e1;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+      .term-time { color: #64748b; }
+      .term-id { color: #38bdf8; font-weight: 600; }
+      .term-proxy { color: #34d399; font-weight: 600; }
+      .term-direct { color: #60a5fa; font-weight: 600; }
+      .term-reject { color: #fb7185; font-weight: 600; }
+      .term-rule { color: #fbbf24; }
+      .term-tunnel { color: #c084fc; }
+
+      /* Analytics View */
+      .analytics-view {
+        display: none;
+      }
+      .analytics-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+      }
+      .chart-card {
+        background: var(--bg-card);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--border-subtle);
+        border-radius: 12px;
+        padding: 20px;
+      }
+      .chart-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .bar-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .bar-item {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .bar-info {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        font-family: var(--font-mono);
+      }
+      .bar-track {
+        height: 8px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 9999px;
+        overflow: hidden;
+      }
+      .bar-fill {
+        height: 100%;
+        border-radius: 9999px;
+        background: linear-gradient(90deg, #6366f1, #38bdf8);
+        transition: width 0.4s ease;
+      }
+
+      /* Slide-Over Drawer / Modal */
+      .drawer-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.65);
+        backdrop-filter: blur(4px);
+        z-index: 100;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s ease;
+      }
+      .drawer-overlay.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .drawer-content {
+        position: fixed;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 540px;
+        max-width: 90vw;
+        background: var(--bg-drawer);
+        border-left: 1px solid var(--border-subtle);
+        box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+        z-index: 101;
+        transform: translateX(100%);
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        display: flex;
+        flex-direction: column;
+      }
+      .drawer-overlay.open .drawer-content {
+        transform: translateX(0);
+      }
+
+      .drawer-header {
+        padding: 18px 22px;
+        border-bottom: 1px solid var(--border-subtle);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--bg-header);
+      }
+      .drawer-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .drawer-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .drawer-section {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--border-subtle);
+        border-radius: 10px;
+        padding: 14px 16px;
+      }
+      .section-label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        letter-spacing: 0.05em;
+        margin-bottom: 10px;
+      }
+      .detail-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        padding: 6px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      }
+      .detail-row:last-child { border-bottom: none; }
+      .detail-key { color: var(--text-secondary); }
+      .detail-val {
+        color: var(--text-primary);
+        font-weight: 500;
+        font-family: var(--font-mono);
+        text-align: right;
+        word-break: break-all;
+        max-width: 65%;
+      }
+      .raw-log-box {
+        background: var(--bg-input);
+        border: 1px solid var(--border-subtle);
+        border-radius: 8px;
+        padding: 12px;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        line-height: 1.6;
+        color: var(--text-secondary);
+        white-space: pre-wrap;
+        word-break: break-all;
+        max-height: 240px;
+        overflow-y: auto;
+      }
+      .drawer-footer {
+        padding: 16px 22px;
+        border-top: 1px solid var(--border-subtle);
+        background: var(--bg-header);
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+
+      /* Toast Notification */
+      .toast-container {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 200;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        pointer-events: none;
+      }
+      .toast {
+        background: var(--bg-card);
+        color: var(--text-primary);
+        border: 1px solid var(--border-subtle);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transform: translateY(20px);
+        opacity: 0;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        pointer-events: auto;
+      }
+      .toast.show {
+        transform: translateY(0);
+        opacity: 1;
+      }
+
+      /* Help Modal */
+      .modal-box {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.95);
+        background: var(--bg-drawer);
+        border: 1px solid var(--border-subtle);
+        border-radius: 14px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+        z-index: 105;
+        width: 480px;
+        max-width: 90vw;
+        padding: 24px;
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.2s ease;
+      }
+      .modal-box.open {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .shortcut-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin: 16px 0;
+      }
+      .shortcut-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 13px;
+        color: var(--text-secondary);
+      }
+      kbd {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid var(--border-subtle);
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-primary);
+      }
+
+      /* Responsive */
+      @media (max-width: 1100px) {
+        .stats-grid { grid-template-columns: repeat(3, 1fr); }
+        .analytics-grid { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 768px) {
+        .app-header, .container { padding-left: 16px; padding-right: 16px; }
+        .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        .toolbar { flex-direction: column; align-items: stretch; }
+        .filter-group { flex-direction: column; align-items: stretch; }
+        .action-group { justify-content: space-between; }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="logo-group">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M13.13 2.55a1.5 1.5 0 0 0-2.26 0L4.2 9.22A1.5 1.5 0 0 0 4.14 11l4.86 6.48a1.5 1.5 0 0 0 2 .4l7.6-5.06a1.5 1.5 0 0 0 .5-1.92l-6-8.35ZM8.5 13a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="app-title">
+            Shadowrocket Connections
+            <span class="version-tag">v1.1</span>
+          </div>
+          <div class="app-subtitle">
+            <span>实时流量诊断面板</span>
+            <span>·</span>
+            <span id="upstream-target" style="font-family: var(--font-mono); color: #cbd5e1;">127.0.0.1:1080/api/log</span>
+            <button id="btn-edit-api" class="btn-api-edit" title="修改 Shadowrocket API 地址 (S)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              修改
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <!-- View Tabs -->
+        <nav class="nav-tabs" aria-label="视图切换">
+          <button class="nav-tab active" data-view="table">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18"/></svg>
+            连接列表
+          </button>
+          <button class="nav-tab" data-view="stream">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+            原始日志
+          </button>
+          <button class="nav-tab" data-view="analytics">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+            流量统计
+          </button>
+        </nav>
+
+        <!-- Upstream Status Indicator -->
+        <div class="status-pill" id="status-container" title="点击查看或修改 Shadowrocket API 端点 (S)">
+          <span id="dot" class="status-dot"></span>
+          <span id="status-text">连接中…</span>
+        </div>
+
+        <!-- Theme Switcher -->
+        <div class="theme-dropdown-wrapper">
+          <button id="btn-theme" class="btn-theme-selector" title="切换界面皮肤主题 (T)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+            <span id="theme-current-label">🌌 暗夜极光</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div id="theme-menu" class="theme-dropdown-menu">
+            <div class="theme-option active" data-theme-val="aurora"><span class="theme-dot" style="background:#6366f1;"></span><span>🌌 暗夜极光 (Aurora)</span></div>
+            <div class="theme-option" data-theme-val="tokyo-night"><span class="theme-dot" style="background:#7aa2f7;"></span><span>🟣 东京之夜 (Tokyo Night)</span></div>
+            <div class="theme-option" data-theme-val="cyberpunk"><span class="theme-dot" style="background:#ec4899;"></span><span>⚡️ 赛博霓虹 (Cyberpunk)</span></div>
+            <div class="theme-option" data-theme-val="oled"><span class="theme-dot" style="background:#222222; border:1px solid #777;"></span><span>🌑 黑曜纯黑 (OLED Pure)</span></div>
+            <div class="theme-option" data-theme-val="nordic-light"><span class="theme-dot" style="background:#f1f5f9; border:1px solid #94a3b8;"></span><span>☀️ 极简明亮 (Clean Light)</span></div>
+          </div>
+        </div>
+
+        <!-- API Settings Button -->
+        <button class="btn-icon" id="btn-settings" title="API 设置 (S)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+
+        <!-- Help Button -->
+        <button class="btn-icon" id="btn-help" title="快捷键与帮助 (?)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="container">
+      <!-- Metric Cards -->
+      <section class="stats-grid">
+        <div class="stat-card card-total">
+          <div class="stat-header">
+            <span class="stat-label">当前连接</span>
+            <div class="stat-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+            </div>
+          </div>
+          <div class="stat-value-group">
+            <span id="stat-total" class="stat-value">0</span>
+            <span id="stat-active-badge" class="stat-sub">0 活跃</span>
+          </div>
+        </div>
+
+        <div class="stat-card card-proxy">
+          <div class="stat-header">
+            <span class="stat-label">PROXY 代理</span>
+            <div class="stat-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </div>
+          <div class="stat-value-group">
+            <span id="stat-proxy" class="stat-value">0</span>
+            <span id="stat-proxy-pct" class="stat-sub">0%</span>
+          </div>
+        </div>
+
+        <div class="stat-card card-direct">
+          <div class="stat-header">
+            <span class="stat-label">DIRECT 直连</span>
+            <div class="stat-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </div>
+          </div>
+          <div class="stat-value-group">
+            <span id="stat-direct" class="stat-value">0</span>
+            <span id="stat-direct-pct" class="stat-sub">0%</span>
+          </div>
+        </div>
+
+        <div class="stat-card card-reject">
+          <div class="stat-header">
+            <span class="stat-label">REJECT 拦截</span>
+            <div class="stat-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+            </div>
+          </div>
+          <div class="stat-value-group">
+            <span id="stat-reject" class="stat-value">0</span>
+            <span id="stat-reject-pct" class="stat-sub">0%</span>
+          </div>
+        </div>
+
+        <div class="stat-card card-events">
+          <div class="stat-header">
+            <span class="stat-label">日志事件流</span>
+            <div class="stat-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+          </div>
+          <div class="stat-value-group">
+            <span id="stat-events" class="stat-value">0</span>
+            <span id="stat-event-rate" class="stat-sub">0 msg/s</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- View 1: Table View -->
+      <section id="view-table" class="tab-content active">
+        <!-- Control Toolbar -->
+        <div class="toolbar">
+          <div class="filter-group">
+            <!-- Search -->
+            <div class="search-box">
+              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input id="search-input" class="search-input" placeholder="搜索 URL、域名、规则、策略、UA、ID…" />
+              <button id="search-clear-btn" class="search-clear" title="清空搜索">✕</button>
+              <span class="search-shortcut">⌘K</span>
+            </div>
+
+            <!-- Route Filter Segment -->
+            <div class="segment-control" id="route-filters">
+              <button class="segment-btn active" data-filter="ALL">全部</button>
+              <button class="segment-btn" data-filter="PROXY">PROXY</button>
+              <button class="segment-btn" data-filter="DIRECT">DIRECT</button>
+              <button class="segment-btn" data-filter="REJECT">REJECT</button>
+            </div>
+
+            <!-- Status Dropdown -->
+            <select id="status-filter" class="select-dropdown">
+              <option value="ALL">全部状态</option>
+              <option value="ACTIVE">仅活跃连接</option>
+              <option value="CLOSED">已关闭连接</option>
+            </select>
+
+            <!-- Policy Group Dropdown -->
+            <select id="group-filter" class="select-dropdown">
+              <option value="ALL">全部策略组</option>
+            </select>
+          </div>
+
+          <!-- Actions -->
+          <div class="action-group">
+            <button id="btn-pause" class="btn btn-pause" title="暂停/继续刷新 (Space)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+              <span id="btn-pause-text">暂停刷新</span>
+            </button>
+            <button id="btn-clear" class="btn" title="清空连接记录 (C)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              清空
+            </button>
+            <button id="btn-export" class="btn btn-primary" title="导出当前日志数据为 JSON">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              导出 JSON
+            </button>
+          </div>
+        </div>
+
+        <div class="hint-banner">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          HTTPS 流量在未配置 MITM 解密证书时只显示域名/主机；开启 MITM 或 HTTP 协议可解析完整请求路径。点击任意行可查看详细握手与规则信息。
+        </div>
+
+        <!-- Table Card -->
+        <div class="table-card">
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 85px;">时间</th>
+                  <th style="min-width: 220px;">目标主机 / 完整 URL</th>
+                  <th style="width: 125px;">路由 / 状态</th>
+                  <th style="width: 220px;">命中规则</th>
+                  <th style="width: 230px;">出站节点 / 策略</th>
+                  <th style="width: 125px;">应用进程</th>
+                  <th style="width: 60px; text-align: right;">操作</th>
+                </tr>
+              </thead>
+              <tbody id="connection-rows">
+                <tr>
+                  <td colspan="7" class="empty-state">
+                    <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2M9 9h.01M15 9h.01"/></svg>
+                    <div class="empty-title">等待 Shadowrocket 日志流入…</div>
+                    <div class="empty-desc">请确认 Shadowrocket 已开启「设置 → 诊断与日志」中的 HTTP 日志服务。产生网络访问后将实时显示连接。</div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- View 2: Live Stream Terminal View -->
+      <section id="view-stream" class="stream-view">
+        <div class="terminal-container">
+          <div class="terminal-header">
+            <div class="terminal-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+              <span>Shadowrocket Diagnostic Stream Console</span>
+              <span id="term-line-count" class="stat-sub">0 lines</span>
+            </div>
+            <div class="action-group">
+              <label style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                <input type="checkbox" id="term-autoscroll" checked /> 自动滚动到底部
+              </label>
+              <button id="term-clear" class="btn" style="padding: 4px 10px; font-size: 12px;">清屏</button>
+              <button id="term-copy" class="btn" style="padding: 4px 10px; font-size: 12px;">复制全部</button>
+            </div>
+          </div>
+          <div id="terminal-body" class="terminal-body"></div>
+        </div>
+      </section>
+
+      <!-- View 3: Traffic Analytics -->
+      <section id="view-analytics" class="analytics-view">
+        <div class="analytics-grid">
+          <!-- Top Domains -->
+          <div class="chart-card">
+            <div class="chart-title">
+              <span>高频访问域名 TOP 10</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            </div>
+            <div id="analytics-domains" class="bar-list">
+              <div class="empty-state" style="padding: 30px 0;">暂无统计数据</div>
+            </div>
+          </div>
+
+          <!-- Top Rules -->
+          <div class="chart-card">
+            <div class="chart-title">
+              <span>高频命中规则 TOP 10</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            </div>
+            <div id="analytics-rules" class="bar-list">
+              <div class="empty-state" style="padding: 30px 0;">暂无统计数据</div>
+            </div>
+          </div>
+
+          <!-- Route Distribution -->
+          <div class="chart-card">
+            <div class="chart-title">
+              <span>出站分流比例</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83M22 12A10 10 0 0 0 12 2v10z"/></svg>
+            </div>
+            <div id="analytics-routes" class="bar-list">
+              <div class="empty-state" style="padding: 30px 0;">暂无统计数据</div>
+            </div>
+          </div>
+
+          <!-- Policy Groups -->
+          <div class="chart-card">
+            <div class="chart-title">
+              <span>策略组分布</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            </div>
+            <div id="analytics-groups" class="bar-list">
+              <div class="empty-state" style="padding: 30px 0;">暂无统计数据</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Detail Drawer -->
+    <div id="drawer-overlay" class="drawer-overlay">
+      <div class="drawer-content">
+        <div class="drawer-header">
+          <div class="drawer-title">
+            <span id="drawer-id-badge" class="pill pill-proxy">#0</span>
+            <span id="drawer-host">连接详情</span>
+          </div>
+          <button id="drawer-close" class="btn-icon" title="关闭详情">✕</button>
+        </div>
+
+        <div class="drawer-body">
+          <!-- Status & Basic Info -->
+          <div class="drawer-section">
+            <div class="section-label">基础网络指标</div>
+            <div class="detail-row"><span class="detail-key">连接状态</span><span id="d-status" class="detail-val">—</span></div>
+            <div class="detail-row"><span class="detail-key">记录时间</span><span id="d-time" class="detail-val">—</span></div>
+            <div class="detail-row"><span class="detail-key">握手延迟 / Cost</span><span id="d-cost" class="detail-val">—</span></div>
+            <div class="detail-row"><span class="detail-key">协议类型</span><span id="d-proto" class="detail-val">—</span></div>
+          </div>
+
+          <!-- Destination Info -->
+          <div class="drawer-section">
+            <div class="section-label">目标与 URL 信息</div>
+            <div class="detail-row"><span class="detail-key">目标域名 / Host</span><span id="d-host" class="detail-val">—</span></div>
+            <div class="detail-row"><span class="detail-key">完整 URL</span><span id="d-url" class="detail-val">—</span></div>
+          </div>
+
+          <!-- Route & Strategy Info -->
+          <div class="drawer-section">
+            <div class="section-label">分流决策与出站节点</div>
+            <div class="detail-row"><span class="detail-key">出站路由</span><span id="d-route" class="detail-val">—</span></div>
+            <div class="detail-row"><span class="detail-key">最终使用节点</span><span id="d-node" class="detail-val">—</span></div>
+            <div class="detail-row"><span class="detail-key">命中分流规则</span><span id="d-rule" class="detail-val">—</span></div>
+            <div class="detail-row"><span class="detail-key">策略组 (Group)</span><span id="d-group" class="detail-val">—</span></div>
+            <div class="detail-row"><span class="detail-key">出站服务器 IP/端点</span><span id="d-server" class="detail-val">—</span></div>
+            <div class="detail-row"><span class="detail-key">子策略 (Policy)</span><span id="d-policy" class="detail-val">—</span></div>
+          </div>
+
+          <!-- Client & Raw Log -->
+          <div class="drawer-section">
+            <div class="section-label">客户端与 User-Agent</div>
+            <div class="detail-row"><span class="detail-key">User-Agent</span><span id="d-ua" class="detail-val">—</span></div>
+          </div>
+
+          <div class="drawer-section">
+            <div class="section-label">原始日志跟踪 (Raw Event Logs)</div>
+            <div id="d-raw" class="raw-log-box"></div>
+          </div>
+        </div>
+
+        <div class="drawer-footer">
+          <button id="d-btn-copy-url" class="btn">复制 URL</button>
+          <button id="d-btn-copy-json" class="btn btn-primary">复制完整 JSON</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- API Settings Modal -->
+    <div id="api-modal" class="modal-box" style="width: 500px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <h3 style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Shadowrocket API 端点配置
+        </h3>
+        <button id="api-modal-close" class="btn-icon">✕</button>
+      </div>
+      <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
+        配置 Shadowrocket 日志 API 端点地址。服务将自动重新连接并流式拉取日志。
+      </p>
+
+      <div style="margin-bottom: 12px;">
+        <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">
+          日志流 API 地址 (URL)
+        </label>
+        <div style="position: relative;">
+          <input id="api-url-input" class="search-input" style="padding-left: 12px; font-family: var(--font-mono); font-size: 13px;" placeholder="http://127.0.0.1:1080/api/log" />
+        </div>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <span style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">常用预设地址</span>
+        <div class="preset-list">
+          <button class="preset-chip" onclick="applyApiPreset('http://127.0.0.1:1080/api/log')">127.0.0.1:1080 (默认)</button>
+          <button class="preset-chip" onclick="applyApiPreset('http://localhost:1080/api/log')">localhost:1080</button>
+          <button class="preset-chip" onclick="applyApiPreset('http://127.0.0.1:1086/api/log')">127.0.0.1:1086</button>
+          <button class="preset-chip" onclick="applyApiPreset('http://127.0.0.1:8080/api/log')">127.0.0.1:8080</button>
+        </div>
+      </div>
+
+      <div id="api-test-status" class="test-status-box"></div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px;">
+        <button id="btn-test-api" class="btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          测试连接
+        </button>
+        <button id="btn-save-api" class="btn btn-primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          保存并重连
+        </button>
+      </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="modal-box">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 style="font-size: 16px; font-weight: 700;">快捷键与使用说明</h3>
+        <button id="modal-close" class="btn-icon">✕</button>
+      </div>
+      <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5;">
+        Shadowrocket Connections Dashboard 用于实时捕获、解析与展示 Shadowrocket 本机诊断日志。
+      </p>
+      <div class="shortcut-list">
+        <div class="shortcut-item"><span>聚焦搜索框</span><div><kbd>⌘</kbd> + <kbd>K</kbd> 或 <kbd>/</kbd></div></div>
+        <div class="shortcut-item"><span>切换界面皮肤</span><kbd>T</kbd></div>
+        <div class="shortcut-item"><span>配置 API 端点</span><kbd>S</kbd></div>
+        <div class="shortcut-item"><span>暂停 / 恢复日志流</span><kbd>Space</kbd></div>
+        <div class="shortcut-item"><span>清空当前连接列表</span><kbd>C</kbd></div>
+        <div class="shortcut-item"><span>关闭弹窗 / 详情抽屉</span><kbd>Esc</kbd></div>
+      </div>
+      <div style="font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--border-subtle); padding-top: 12px;">
+        提示：双击表格行可直接复制对应的主机域名；点击顶部 API 地址可随时修改端口。
+      </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script>
+      // State Store
+      const state = {
+        connections: new Map(),
+        rawLines: [],
+        terminalBuffer: [],
+        maxLines: 800,
+        maxConnections: 1000,
+        eventCount: 0,
+        recentEventsWindow: [],
+        paused: false,
+        activeView: 'table',
+        filterRoute: 'ALL',
+        filterStatus: 'ALL',
+        filterGroup: 'ALL',
+        searchQuery: '',
+        selectedConnection: null,
+        groups: new Set(),
+      };
+
+      const $ = (id) => document.getElementById(id);
+      const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+      // High Performance Throttled Rendering Engine
+      let renderTimer = null;
+      let lastRenderTimestamp = 0;
+      const RENDER_INTERVAL = 120; // Max ~8 DOM flushes per sec during high-frequency log bursts
+
+      function scheduleRender() {
+        if (state.paused) return;
+        const now = Date.now();
+        if (now - lastRenderTimestamp >= RENDER_INTERVAL) {
+          lastRenderTimestamp = now;
+          flushRender();
+        } else if (!renderTimer) {
+          renderTimer = setTimeout(() => {
+            renderTimer = null;
+            lastRenderTimestamp = Date.now();
+            flushRender();
+          }, RENDER_INTERVAL - (now - lastRenderTimestamp));
+        }
+      }
+
+      function flushRender() {
+        updateStats();
+        if (state.activeView === 'table') {
+          renderTable();
+        } else if (state.activeView === 'stream') {
+          flushTerminalBuffer();
+        } else if (state.activeView === 'analytics') {
+          renderAnalytics();
+        }
+      }
+
+      function pruneConnections() {
+        if (state.connections.size <= state.maxConnections) return;
+        const excess = state.connections.size - state.maxConnections;
+        let removed = 0;
+        // 1. Delete closed connections first
+        for (const [id, item] of state.connections) {
+          if (item.closed) {
+            state.connections.delete(id);
+            removed++;
+            if (removed >= excess) return;
+          }
+        }
+        // 2. If still over limit, delete oldest
+        for (const [id] of state.connections) {
+          state.connections.delete(id);
+          removed++;
+          if (removed >= excess) break;
+        }
+      }
+
+      // Toast Notification
+      function showToast(message, icon = '✓') {
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.innerHTML = `<span>${icon}</span><span>${esc(message)}</span>`;
+        $('toast-container').appendChild(toast);
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => {
+          toast.classList.remove('show');
+          setTimeout(() => toast.remove(), 300);
+        }, 2200);
+      }
+
+      // Format Protocol / Client Name
+      function detectApp(ua) {
+        if (!ua) return 'System / Other';
+        if (ua.includes('Safari') && !ua.includes('Chrome')) return 'Safari';
+        if (ua.includes('Chrome')) return 'Google Chrome';
+        if (ua.includes('Telegram')) return 'Telegram';
+        if (ua.includes('Discord')) return 'Discord';
+        if (ua.includes('Twitter') || ua.includes('X/')) return 'X (Twitter)';
+        if (ua.includes('curl')) return 'cURL';
+        if (ua.includes('okhttp')) return 'Android App';
+        if (ua.includes('CFNetwork') || ua.includes('Darwin')) return 'Apple System';
+        if (ua.includes('ChatGPT') || ua.includes('OpenAI')) return 'OpenAI / ChatGPT';
+        return ua.split('/')[0] || 'Unknown';
+      }
+
+      // Update Top Metrics & Group Filters
+      function updateStats() {
+        const items = [...state.connections.values()];
+        const activeItems = items.filter(x => !x.closed);
+        const proxyCount = items.filter(x => x.route === 'PROXY').length;
+        const directCount = items.filter(x => x.route === 'DIRECT').length;
+        const rejectCount = items.filter(x => x.route === 'REJECT').length;
+        const total = items.length;
+
+        $('stat-total').textContent = total;
+        $('stat-active-badge').textContent = `${activeItems.length} 活跃`;
+
+        $('stat-proxy').textContent = proxyCount;
+        $('stat-proxy-pct').textContent = total ? `${Math.round((proxyCount / total) * 100)}%` : '0%';
+
+        $('stat-direct').textContent = directCount;
+        $('stat-direct-pct').textContent = total ? `${Math.round((directCount / total) * 100)}%` : '0%';
+
+        $('stat-reject').textContent = rejectCount;
+        $('stat-reject-pct').textContent = total ? `${Math.round((rejectCount / total) * 100)}%` : '0%';
+
+        $('stat-events').textContent = state.eventCount;
+
+        // Calculate event rate
+        const now = Date.now();
+        state.recentEventsWindow = state.recentEventsWindow.filter(t => now - t < 2000);
+        const rate = (state.recentEventsWindow.length / 2).toFixed(1);
+        $('stat-event-rate').textContent = `${rate} msg/s`;
+
+        // Update group options
+        let newGroupsFound = false;
+        items.forEach(item => {
+          if (item.group && !state.groups.has(item.group)) {
+            state.groups.add(item.group);
+            newGroupsFound = true;
+          }
+        });
+        if (newGroupsFound) {
+          const currentVal = $('group-filter').value;
+          $('group-filter').innerHTML = `<option value="ALL">全部策略组</option>` + 
+            [...state.groups].map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
+          $('group-filter').value = currentVal;
+        }
+
+        if (state.activeView === 'analytics') {
+          renderAnalytics();
+        }
+      }
+
+      // Log Parsing Engine
+      function parseLog(message, timestamp) {
+        state.eventCount++;
+        state.recentEventsWindow.push(Date.now());
+
+        // Extract connection ID
+        const idMatch = message.match(/<(\d+)>/);
+        const id = idMatch ? idMatch[1] : '0';
+
+        const item = state.connections.get(id) || {
+          id,
+          firstSeen: timestamp,
+          timestamp,
+          rawLogs: [],
+          closed: false
+        };
+
+        item.timestamp = timestamp;
+        item.rawLogs.push(`[${timestamp}] ${message}`);
+        if (item.rawLogs.length > 20) item.rawLogs.shift();
+
+        // URL
+        const requestUrl = message.match(/(?:^|\n)\s*url = ([^\n]+)/);
+        if (requestUrl) item.url = requestUrl[1].replace(/,\s*$/, '').trim();
+
+        // Host
+        const target = message.match(/(?:rule url|remove host|lookup host)\s*=>\s*([^\s>]+)/) || message.match(/tunnel\s*=>\s*([^\s,]+)/);
+        if (target) item.host = target[1].replace(/:\d+$/, '');
+
+        // Rule extraction and clean node suffix from rule (e.g. "... # 🇺🇸vless-reality-vision-DMIT,")
+        const rule = message.match(/result = ([^\n]+)|(?:tcp|udp|dns)?\s*rule => \{\s*(?:pattern = ([^\n]+)\s+)?result = ([^\n]+)/);
+        if (rule) {
+          let rawRule = (rule[2] ? `${rule[2]} -> ${rule[3]}` : (rule[1] || rule[3] || '')).trim();
+          const ruleNodeMatch = rawRule.match(/#\s*([^,\n\r}]+)/);
+          if (ruleNodeMatch) {
+            item.node = ruleNodeMatch[1].replace(/[,\s]+$/, '').trim();
+            rawRule = rawRule.replace(/#.*$/, '').replace(/,\s*$/, '').trim();
+          }
+          item.rule = rawRule;
+        }
+
+        // Direct node match anywhere in message with #
+        const anyNodeMatch = message.match(/#\s*([^,\n\r}]+)/);
+        if (anyNodeMatch && (!item.node || item.node === 'PROXY')) {
+          item.node = anyNodeMatch[1].replace(/[,\s]+$/, '').trim();
+        }
+
+        // Route Type
+        const route = message.match(/type = (PROXY|DIRECT|REJECT)/) || message.match(/\b(PROXY|DIRECT|REJECT)\b/);
+        if (route) item.route = route[1];
+
+        // Policy & Group
+        const policy = message.match(/server => ([^\s]+) policy => ([^\s]+) group => ([^\s]+)/);
+        if (policy) {
+          item.server = policy[1];
+          item.policy = policy[2];
+          item.group = policy[3];
+        }
+
+        // Tunnel Node Alias
+        const node = message.match(/tunnel => [^\n]+?#\s*(.+)$/);
+        if (node) item.node = node[1].replace(/[,\s]+$/, '').trim();
+
+        // User Agent
+        const ua = message.match(/ua = (.+)$/);
+        if (ua) item.ua = ua[1].trim();
+
+        // Handshake Cost (Integer rounded)
+        const cost = message.match(/cost => ([\d.]+) ms/);
+        if (cost) item.cost = Math.round(Number(cost[1]));
+
+        // Protocol Detection
+        if (item.url) {
+          item.proto = item.url.startsWith('https://') ? 'HTTPS' : (item.url.startsWith('http://') ? 'HTTP' : 'TCP');
+        } else if (message.includes('udp')) {
+          item.proto = 'UDP';
+        } else {
+          item.proto = 'TCP';
+        }
+
+        // Connection Closed Indicators
+        if (message.includes('remove host') || message.includes('disconnect metrics') || message.includes('closed')) {
+          item.closed = true;
+        }
+
+        state.connections.set(id, item);
+
+        // Memory prune check
+        if (state.eventCount % 40 === 0) pruneConnections();
+
+        // Push to terminal
+        appendTerminalLine(timestamp, message, item);
+
+        // Schedule throttled render
+        scheduleRender();
+      }
+
+      // Terminal Appender
+      function appendTerminalLine(timestamp, message, item) {
+        state.rawLines.push({ timestamp, message, id: item?.id, route: item?.route });
+        if (state.rawLines.length > state.maxLines) state.rawLines.shift();
+
+        if (state.activeView === 'stream') {
+          const div = document.createElement('div');
+          let coloredMsg = esc(message);
+          if (coloredMsg.includes('PROXY')) coloredMsg = coloredMsg.replace(/PROXY/g, '<span class="term-proxy">PROXY</span>');
+          if (coloredMsg.includes('DIRECT')) coloredMsg = coloredMsg.replace(/DIRECT/g, '<span class="term-direct">DIRECT</span>');
+          if (coloredMsg.includes('REJECT')) coloredMsg = coloredMsg.replace(/REJECT/g, '<span class="term-reject">REJECT</span>');
+          if (item?.id) coloredMsg = coloredMsg.replace(new RegExp(`&lt;${item.id}&gt;`, 'g'), `&lt;<span class="term-id">${item.id}</span>&gt;`);
+
+          div.innerHTML = `<span class="term-time">[${esc(timestamp)}]</span> ${coloredMsg}`;
+          state.terminalBuffer.push(div);
+        }
+      }
+
+      function flushTerminalBuffer() {
+        if (!state.terminalBuffer.length) return;
+        const body = $('terminal-body');
+        const fragment = document.createDocumentFragment();
+        for (const div of state.terminalBuffer) {
+          fragment.appendChild(div);
+        }
+        state.terminalBuffer = [];
+        body.appendChild(fragment);
+
+        while (body.childNodes.length > 500) {
+          body.removeChild(body.firstChild);
+        }
+
+        if ($('term-autoscroll').checked) {
+          body.scrollTop = body.scrollHeight;
+        }
+        $('term-line-count').textContent = `${state.rawLines.length} lines`;
+      }
+
+      // Formatting Helpers
+      function formatTime(ts) {
+        if (!ts) return '<span class="time-col">—</span>';
+        const timeMatch = ts.match(/(\d{2}:\d{2}:\d{2})/);
+        const displayTime = timeMatch ? timeMatch[1] : ts;
+        return `<span class="time-col">${esc(displayTime)}</span>`;
+      }
+
+      function formatRule(rawRule) {
+        if (!rawRule) return '<span style="color:#64748b">—</span>';
+        return `<span class="rule-col" onclick="event.stopPropagation(); quickFilterRule('${esc(rawRule)}')" title="点击筛选规则: ${esc(rawRule)}">${esc(rawRule)}</span>`;
+      }
+
+      function formatOutbound(x) {
+        if (x.node) {
+          return `
+            <div class="node-col">
+              <div class="node-main-text" title="${esc(x.node)}">🚀 ${esc(x.node)}</div>
+              <div class="node-sub-text">
+                ${x.group ? `<span class="tag-group">${esc(x.group)}</span>` : ''}
+                ${x.server && x.server !== x.node && x.server !== 'DIRECT' && x.server !== 'REJECT' ? `<span>${esc(x.server)}</span>` : ''}
+              </div>
+            </div>`;
+        }
+        if (x.route === 'DIRECT') {
+          return `
+            <div class="node-col">
+              <div class="node-main-text" style="color:#38bdf8;">⚡️ 直连 (DIRECT)</div>
+              ${x.group && x.group !== 'DIRECT' ? `<div class="node-sub-text"><span class="tag-group">${esc(x.group)}</span></div>` : ''}
+            </div>`;
+        }
+        if (x.route === 'REJECT') {
+          return `
+            <div class="node-col">
+              <div class="node-main-text" style="color:#fb7185;">🛑 拦截 (REJECT)</div>
+              ${x.group && x.group !== 'REJECT' ? `<div class="node-sub-text"><span class="tag-group">${esc(x.group)}</span></div>` : ''}
+            </div>`;
+        }
+        return '<span style="color:#64748b">—</span>';
+      }
+
+      function formatApp(ua) {
+        if (!ua) return '<span class="app-col" style="color:#64748b;">系统进程</span>';
+        const lower = ua.toLowerCase();
+        if (lower.includes('openai') || lower.includes('chatgpt')) {
+          return '<span class="app-col" style="color:#34d399; font-weight:600;">🤖 ChatGPT</span>';
+        }
+        if (lower.includes('chrome')) {
+          return '<span class="app-col" style="color:#60a5fa; font-weight:500;">🌐 Chrome</span>';
+        }
+        if (lower.includes('safari') && !lower.includes('chrome')) {
+          return '<span class="app-col" style="color:#38bdf8; font-weight:500;">🧭 Safari</span>';
+        }
+        if (lower.includes('telegram')) {
+          return '<span class="app-col" style="color:#38bdf8; font-weight:600;">✈️ Telegram</span>';
+        }
+        if (lower.includes('discord')) {
+          return '<span class="app-col" style="color:#818cf8; font-weight:600;">💬 Discord</span>';
+        }
+        if (lower.includes('curl') || lower.includes('git/')) {
+          return `<span class="app-col" style="color:#fbbf24;">⚡️ ${esc(ua.split('/')[0])}</span>`;
+        }
+        return `<span class="app-col" title="${esc(ua)}">${esc(ua.split('/')[0])}</span>`;
+      }
+
+      // Render Connection Table
+      function renderTable() {
+        const query = state.searchQuery.toLowerCase();
+        const routeFilter = state.filterRoute;
+        const statusFilter = state.filterStatus;
+        const groupFilter = state.filterGroup;
+
+        const items = [...state.connections.values()].reverse().filter(x => {
+          if (routeFilter !== 'ALL' && x.route !== routeFilter) return false;
+          if (statusFilter === 'ACTIVE' && x.closed) return false;
+          if (statusFilter === 'CLOSED' && !x.closed) return false;
+          if (groupFilter !== 'ALL' && x.group !== groupFilter) return false;
+
+          if (query) {
+            const searchStr = `${x.id} ${x.host || ''} ${x.url || ''} ${x.rule || ''} ${x.route || ''} ${x.group || ''} ${x.node || ''} ${x.server || ''} ${x.ua || ''}`.toLowerCase();
+            if (!searchStr.includes(query)) return false;
+          }
+          return true;
+        }).slice(0, 120);
+
+        const tbody = $('connection-rows');
+
+        if (!items.length) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="7" class="empty-state">
+                <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <div class="empty-title">未找到匹配的连接记录</div>
+                <div class="empty-desc">请尝试调整搜索关键字或筛选条件。</div>
+              </td>
+            </tr>`;
+          return;
+        }
+
+        tbody.innerHTML = items.map(x => {
+          const routeClass = x.route === 'PROXY' ? 'proxy' : (x.route === 'DIRECT' ? 'direct' : (x.route === 'REJECT' ? 'reject' : ''));
+          const latencyValid = x.cost != null && x.cost < 10000;
+          const costClass = latencyValid ? (x.cost < 80 ? 'fast' : (x.cost < 250 ? 'medium' : 'slow')) : '';
+          const displayHost = x.host || (x.url ? new URL(x.url).hostname : '—');
+
+          return `
+            <tr class="table-row" onclick="openDrawer('${esc(x.id)}')">
+              <td>${formatTime(x.timestamp)}</td>
+              <td>
+                <div class="host-col">
+                  <div class="host-name">
+                    <span>${esc(displayHost)}</span>
+                    <button class="copy-btn" onclick="event.stopPropagation(); copyText('${esc(displayHost)}', '域名已复制')" title="复制域名">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    </button>
+                  </div>
+                  <div class="host-meta">
+                    <span class="tag-proto">${esc(x.proto || 'TCP')}</span>
+                    <span class="tag-id">#${esc(x.id)}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="route-col">
+                  <div class="route-main-line">
+                    ${x.route ? `<span class="tag-route ${routeClass}">${esc(x.route)}</span>` : '<span style="color:#64748b">—</span>'}
+                    ${latencyValid ? `<span class="latency-num ${costClass}">${Math.round(x.cost)}ms</span>` : ''}
+                  </div>
+                  <div class="route-sub-line">
+                    <span class="status-dot ${x.closed ? 'closed' : 'active'}"></span>
+                    <span>${x.closed ? '已断开' : '活跃'}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                ${formatRule(x.rule)}
+              </td>
+              <td>
+                ${formatOutbound(x)}
+              </td>
+              <td>
+                ${formatApp(x.ua)}
+              </td>
+              <td style="text-align: right;">
+                <button class="action-btn" onclick="event.stopPropagation(); openDrawer('${esc(x.id)}')">
+                  详情
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      // Render Analytics Charts
+      function renderAnalytics() {
+        const items = [...state.connections.values()];
+        if (!items.length) return;
+
+        // Top Domains
+        const domainCounts = {};
+        items.forEach(x => {
+          const d = x.host || (x.url ? new URL(x.url).hostname : 'unknown');
+          domainCounts[d] = (domainCounts[d] || 0) + 1;
+        });
+        const topDomains = Object.entries(domainCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+        const maxDomainCount = topDomains[0]?.[1] || 1;
+        $('analytics-domains').innerHTML = topDomains.map(([domain, count]) => `
+          <div class="bar-item">
+            <div class="bar-info"><span style="font-weight:600;">${esc(domain)}</span><span style="color:var(--text-muted)">${count} 次 (${Math.round(count / items.length * 100)}%)</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width: ${(count / maxDomainCount * 100)}%"></div></div>
+          </div>
+        `).join('');
+
+        // Top Rules
+        const ruleCounts = {};
+        items.forEach(x => {
+          if (x.rule) ruleCounts[x.rule] = (ruleCounts[x.rule] || 0) + 1;
+        });
+        const topRules = Object.entries(ruleCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+        const maxRuleCount = topRules[0]?.[1] || 1;
+        $('analytics-rules').innerHTML = topRules.length ? topRules.map(([rule, count]) => `
+          <div class="bar-item">
+            <div class="bar-info"><span style="font-weight:600;">${esc(rule)}</span><span style="color:var(--text-muted)">${count} 次</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width: ${(count / maxRuleCount * 100)}%; background: linear-gradient(90deg, #f59e0b, #fbbf24);"></div></div>
+          </div>
+        `).join('') : '<div class="empty-state" style="padding: 20px 0;">暂无匹配规则数据</div>';
+
+        // Route Ratio
+        const proxyCount = items.filter(x => x.route === 'PROXY').length;
+        const directCount = items.filter(x => x.route === 'DIRECT').length;
+        const rejectCount = items.filter(x => x.route === 'REJECT').length;
+        const routeData = [
+          { name: 'PROXY 代理流量', count: proxyCount, color: 'linear-gradient(90deg, #059669, #34d399)' },
+          { name: 'DIRECT 直连流量', count: directCount, color: 'linear-gradient(90deg, #0284c7, #38bdf8)' },
+          { name: 'REJECT 拦截阻止', count: rejectCount, color: 'linear-gradient(90deg, #e11d48, #fb7185)' },
+        ];
+        $('analytics-routes').innerHTML = routeData.map(r => `
+          <div class="bar-item">
+            <div class="bar-info"><span>${esc(r.name)}</span><span>${r.count} (${items.length ? Math.round(r.count / items.length * 100) : 0}%)</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width: ${items.length ? (r.count / items.length * 100) : 0}%; background: ${r.color};"></div></div>
+          </div>
+        `).join('');
+
+        // Policy Groups
+        const groupCounts = {};
+        items.forEach(x => {
+          const g = x.group || 'DIRECT / DEFAULT';
+          groupCounts[g] = (groupCounts[g] || 0) + 1;
+        });
+        const topGroups = Object.entries(groupCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+        const maxGroup = topGroups[0]?.[1] || 1;
+        $('analytics-groups').innerHTML = topGroups.map(([group, count]) => `
+          <div class="bar-item">
+            <div class="bar-info"><span>${esc(group)}</span><span>${count} 次</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width: ${(count / maxGroup * 100)}%; background: linear-gradient(90deg, #8b5cf6, #c084fc);"></div></div>
+          </div>
+        `).join('');
+      }
+
+      // Drawer Open / Close
+      function openDrawer(id) {
+        const item = state.connections.get(id);
+        if (!item) return;
+        state.selectedConnection = item;
+
+        $('drawer-id-badge').textContent = `#${item.id}`;
+        $('drawer-id-badge').className = `pill ${item.route === 'PROXY' ? 'pill-proxy' : (item.route === 'DIRECT' ? 'pill-direct' : 'pill-reject')}`;
+        $('drawer-host').textContent = item.host || '连接详情';
+
+        $('d-status').textContent = item.closed ? '已断开连接 (Closed)' : '活动中 (Active)';
+        $('d-status').style.color = item.closed ? '#94a3b8' : '#34d399';
+        $('d-time').textContent = item.timestamp || '—';
+        $('d-cost').textContent = item.cost != null ? `${Math.round(item.cost)} ms` : '—';
+        $('d-proto').textContent = item.proto || 'TCP';
+
+        $('d-host').textContent = item.host || '—';
+        $('d-url').textContent = item.url || '未解密或未获取完整 URL (需开启 MITM)';
+
+        $('d-route').textContent = item.route || '—';
+        $('d-rule').textContent = item.rule || '—';
+        $('d-group').textContent = item.group || '—';
+        $('d-policy').textContent = item.policy || '—';
+        $('d-server').textContent = item.server || '—';
+        
+        if (item.node) {
+          $('d-node').innerHTML = `<span class="node-badge-highlight" style="font-size: 13px;">🚀 ${esc(item.node)}</span>`;
+        } else if (item.route === 'DIRECT') {
+          $('d-node').innerHTML = `<span class="node-badge-direct" style="font-size: 13px;">⚡️ DIRECT 直连</span>`;
+        } else if (item.route === 'REJECT') {
+          $('d-node').innerHTML = `<span class="node-badge-reject" style="font-size: 13px;">🛑 REJECT 拦截</span>`;
+        } else {
+          $('d-node').innerHTML = `<span style="color:var(--text-muted)">—</span>`;
+        }
+
+        $('d-ua').textContent = item.ua || '系统原生网络调用 / 未上报 UA';
+        $('d-raw').textContent = (item.rawLogs || []).join('\n') || '无原始日志片段';
+
+        $('drawer-overlay').classList.add('open');
+      }
+
+      function closeDrawer() {
+        $('drawer-overlay').classList.remove('open');
+      }
+
+      function copyText(text, successMsg = '已复制到剪贴板') {
+        if (!text) return;
+        navigator.clipboard.writeText(text).then(() => {
+          showToast(successMsg);
+        }).catch(() => {
+          // Fallback
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          showToast(successMsg);
+        });
+      }
+
+      function quickFilterRule(rule) {
+        state.searchQuery = rule;
+        $('search-input').value = rule;
+        $('search-clear-btn').style.display = 'block';
+        renderTable();
+        showToast(`已筛选规则: ${rule}`);
+      }
+
+      // Export Functionality
+      function exportData() {
+        const items = [...state.connections.values()];
+        if (!items.length) {
+          showToast('当前没有可导出的连接数据', '⚠️');
+          return;
+        }
+        const json = JSON.stringify(items, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `shadowrocket-connections-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('已导出 JSON 格式数据');
+      }
+
+      // Event Listeners Setup
+      function initEvents() {
+        // Nav tab switching
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+          tab.addEventListener('click', () => {
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            const view = tab.getAttribute('data-view');
+            state.activeView = view;
+
+            $('view-table').style.display = view === 'table' ? 'block' : 'none';
+            $('view-stream').style.display = view === 'stream' ? 'block' : 'none';
+            $('view-analytics').style.display = view === 'analytics' ? 'block' : 'none';
+
+            if (view === 'table') renderTable();
+            if (view === 'analytics') renderAnalytics();
+            if (view === 'stream' && $('term-autoscroll').checked) {
+              const body = $('terminal-body');
+              body.scrollTop = body.scrollHeight;
+            }
+          });
+        });
+
+        // Search input with debounce
+        let searchDebounceTimer = null;
+        $('search-input').addEventListener('input', (e) => {
+          clearTimeout(searchDebounceTimer);
+          const val = e.target.value;
+          $('search-clear-btn').style.display = val ? 'block' : 'none';
+          searchDebounceTimer = setTimeout(() => {
+            state.searchQuery = val;
+            renderTable();
+          }, 100);
+        });
+
+        $('search-clear-btn').addEventListener('click', () => {
+          state.searchQuery = '';
+          $('search-input').value = '';
+          $('search-clear-btn').style.display = 'none';
+          renderTable();
+          $('search-input').focus();
+        });
+
+        // Route filter buttons
+        document.querySelectorAll('#route-filters .segment-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            document.querySelectorAll('#route-filters .segment-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            state.filterRoute = btn.getAttribute('data-filter');
+            renderTable();
+          });
+        });
+
+        // Status & Group dropdowns
+        $('status-filter').addEventListener('change', (e) => {
+          state.filterStatus = e.target.value;
+          renderTable();
+        });
+        $('group-filter').addEventListener('change', (e) => {
+          state.filterGroup = e.target.value;
+          renderTable();
+        });
+
+        // Toolbar buttons
+        $('btn-pause').addEventListener('click', () => {
+          state.paused = !state.paused;
+          $('btn-pause').classList.toggle('paused', state.paused);
+          $('btn-pause-text').textContent = state.paused ? '恢复刷新' : '暂停刷新';
+          showToast(state.paused ? '已暂停日志实时刷新' : '已恢复日志实时刷新', state.paused ? '⏸' : '▶');
+          if (!state.paused) {
+            updateStats();
+            renderTable();
+          }
+        });
+
+        $('btn-clear').addEventListener('click', () => {
+          state.connections.clear();
+          state.groups.clear();
+          state.rawLines = [];
+          state.eventCount = 0;
+          $('terminal-body').innerHTML = '';
+          $('term-line-count').textContent = '0 lines';
+          $('group-filter').innerHTML = '<option value="ALL">全部策略组</option>';
+          updateStats();
+          renderTable();
+          showToast('已清空所有连接记录');
+        });
+
+        $('btn-export').addEventListener('click', exportData);
+
+        // Terminal actions
+        $('term-clear').addEventListener('click', () => {
+          state.rawLines = [];
+          $('terminal-body').innerHTML = '';
+          $('term-line-count').textContent = '0 lines';
+          showToast('已清空终端屏幕');
+        });
+        $('term-copy').addEventListener('click', () => {
+          const text = state.rawLines.map(l => `[${l.timestamp}] ${l.message}`).join('\n');
+          copyText(text, '已复制全部终端日志');
+        });
+
+        // Drawer
+        $('drawer-close').addEventListener('click', closeDrawer);
+        $('drawer-overlay').addEventListener('click', (e) => {
+          if (e.target === $('drawer-overlay')) closeDrawer();
+        });
+        $('d-btn-copy-url').addEventListener('click', () => {
+          if (state.selectedConnection?.url || state.selectedConnection?.host) {
+            copyText(state.selectedConnection.url || state.selectedConnection.host, '已复制目标 URL');
+          }
+        });
+        $('d-btn-copy-json').addEventListener('click', () => {
+          if (state.selectedConnection) {
+            copyText(JSON.stringify(state.selectedConnection, null, 2), '已复制连接详情 JSON');
+          }
+        });
+
+        // Help Modal
+        $('btn-help').addEventListener('click', () => $('help-modal').classList.add('open'));
+        $('modal-close').addEventListener('click', () => $('help-modal').classList.remove('open'));
+
+        // Theme dropdown
+        initTheme();
+
+        // API Modal
+        $('btn-edit-api').addEventListener('click', openApiModal);
+        $('btn-settings').addEventListener('click', openApiModal);
+        $('status-container').addEventListener('click', openApiModal);
+        $('api-modal-close').addEventListener('click', closeApiModal);
+        $('btn-test-api').addEventListener('click', testApiConnection);
+        $('btn-save-api').addEventListener('click', saveApiConfig);
+
+        // Global Shortcuts
+        window.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            closeDrawer();
+            $('help-modal').classList.remove('open');
+            closeApiModal();
+            $('theme-menu')?.classList.remove('show');
+          }
+          if ((e.metaKey || e.ctrlKey) && e.key === 'k' || (e.key === '/' && document.activeElement.tagName !== 'INPUT')) {
+            e.preventDefault();
+            $('search-input').focus();
+          }
+          if ((e.key === 's' || e.key === 'S') && document.activeElement.tagName !== 'INPUT') {
+            e.preventDefault();
+            openApiModal();
+          }
+          if ((e.key === 't' || e.key === 'T') && document.activeElement.tagName !== 'INPUT') {
+            e.preventDefault();
+            cycleTheme();
+          }
+          if (e.key === '?' && document.activeElement.tagName !== 'INPUT') {
+            $('help-modal').classList.toggle('open');
+          }
+          if (e.code === 'Space' && document.activeElement.tagName !== 'INPUT') {
+            e.preventDefault();
+            $('btn-pause').click();
+          }
+          if (e.key === 'c' && document.activeElement.tagName !== 'INPUT') {
+            $('btn-clear').click();
+          }
+        });
+      }
+
+      // Theme Management
+      const THEMES = [
+        { id: 'aurora', label: '🌌 暗夜极光', color: '#6366f1' },
+        { id: 'tokyo-night', label: '🟣 东京之夜', color: '#7aa2f7' },
+        { id: 'cyberpunk', label: '⚡️ 赛博霓虹', color: '#ec4899' },
+        { id: 'oled', label: '🌑 黑曜纯黑', color: '#71717a' },
+        { id: 'nordic-light', label: '☀️ 极简明亮', color: '#38bdf8' }
+      ];
+
+      function initTheme() {
+        const savedTheme = localStorage.getItem('sr_dashboard_theme') || 'aurora';
+        applyTheme(savedTheme, false);
+
+        const btnTheme = $('btn-theme');
+        const themeMenu = $('theme-menu');
+
+        btnTheme?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          themeMenu.classList.toggle('show');
+        });
+
+        document.addEventListener('click', (e) => {
+          if (!themeMenu?.contains(e.target) && e.target !== btnTheme) {
+            themeMenu?.classList.remove('show');
+          }
+        });
+
+        document.querySelectorAll('.theme-option').forEach(opt => {
+          opt.addEventListener('click', () => {
+            const themeVal = opt.getAttribute('data-theme-val');
+            applyTheme(themeVal, true);
+            themeMenu.classList.remove('show');
+          });
+        });
+      }
+
+      function applyTheme(themeId, notify = false) {
+        document.documentElement.setAttribute('data-theme', themeId);
+        localStorage.setItem('sr_dashboard_theme', themeId);
+
+        const cur = THEMES.find(t => t.id === themeId) || THEMES[0];
+        const label = $('theme-current-label');
+        if (label) label.textContent = cur.label;
+
+        document.querySelectorAll('.theme-option').forEach(opt => {
+          if (opt.getAttribute('data-theme-val') === themeId) {
+            opt.classList.add('active');
+          } else {
+            opt.classList.remove('active');
+          }
+        });
+
+        if (notify) {
+          showToast(`已切换至皮肤: ${cur.label}`);
+        }
+      }
+
+      function cycleTheme() {
+        const current = document.documentElement.getAttribute('data-theme') || 'aurora';
+        const currentIndex = THEMES.findIndex(t => t.id === current);
+        const nextIndex = (currentIndex + 1) % THEMES.length;
+        applyTheme(THEMES[nextIndex].id, true);
+      }
+
+      // API Settings Functions
+      function openApiModal() {
+        fetch('/api/config')
+          .then(res => res.json())
+          .then(data => {
+            if (data.upstreamUrl) $('api-url-input').value = data.upstreamUrl;
+          })
+          .catch(() => {});
+        $('api-test-status').style.display = 'none';
+        $('api-modal').classList.add('open');
+        $('api-url-input').focus();
+      }
+
+      function closeApiModal() {
+        $('api-modal').classList.remove('open');
+      }
+
+      function applyApiPreset(url) {
+        $('api-url-input').value = url;
+      }
+
+      async function testApiConnection() {
+        const url = $('api-url-input').value.trim();
+        const statusBox = $('api-test-status');
+        if (!url) {
+          statusBox.className = 'test-status-box err';
+          statusBox.innerHTML = '⚠️ 请先输入有效的 API 地址';
+          return;
+        }
+
+        statusBox.className = 'test-status-box';
+        statusBox.style.display = 'flex';
+        statusBox.innerHTML = '⏳ 正在测试与 Shadowrocket 端点的连通性…';
+
+        try {
+          // Send test request to backend to probe
+          const res = await fetch('/api/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ upstreamUrl: url })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            statusBox.className = 'test-status-box ok';
+            statusBox.innerHTML = `✓ 已成功应用并连接到端点: ${esc(url)}`;
+            showToast('已切换至新端点并重新连接', '🟢');
+          } else {
+            statusBox.className = 'test-status-box err';
+            statusBox.innerHTML = `✗ 错误: ${esc(data.error || '连接失败')}`;
+          }
+        } catch (e) {
+          statusBox.className = 'test-status-box err';
+          statusBox.innerHTML = `✗ 请求失败: ${esc(e.message)}`;
+        }
+      }
+
+      async function saveApiConfig() {
+        const url = $('api-url-input').value.trim();
+        if (!url) {
+          showToast('API 地址不能为空', '⚠️');
+          return;
+        }
+
+        try {
+          const res = await fetch('/api/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ upstreamUrl: url })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            showToast('Shadowrocket API 地址已保存并重连', '🚀');
+            closeApiModal();
+          } else {
+            showToast(data.error || '保存失败', '⚠️');
+          }
+        } catch (e) {
+          showToast(`保存失败: ${e.message}`, '⚠️');
+        }
+      }
+
+      // Connect SSE Stream
+      function connectSSE() {
+        const stream = new EventSource('/events');
+
+        stream.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'status') {
+              const dot = $('dot');
+              const text = $('status-text');
+              if (data.connected) {
+                dot.className = 'status-dot ok';
+                text.textContent = 'Shadowrocket 已连接';
+              } else {
+                dot.className = 'status-dot';
+                text.textContent = data.error ? '等待重连…' : '未连接 Shadowrocket';
+              }
+              if (data.upstreamUrl) {
+                $('upstream-target').textContent = data.upstreamUrl.replace(/^https?:\/\//, '');
+              }
+              return;
+            }
+
+            parseLog(data.message, data.timestamp);
+          } catch (e) {
+            console.error('Failed to parse SSE event:', e);
+          }
+        };
+
+        stream.onerror = () => {
+          $('dot').className = 'status-dot';
+          $('status-text').textContent = '面板连接中断，重连中…';
+        };
+      }
+
+      // Initializer
+      window.addEventListener('DOMContentLoaded', () => {
+        initEvents();
+        connectSSE();
+      });
+    </script>
+  </body>
+</html>
+

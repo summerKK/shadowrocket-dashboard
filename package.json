@@ -1,0 +1,24 @@
+{
+  "name": "shadowrocket-dashboard",
+  "version": "1.0.0",
+  "description": "Modern real-time connections & traffic diagnostics dashboard for Shadowrocket",
+  "type": "module",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node server.mjs"
+  },
+  "keywords": [
+    "shadowrocket",
+    "dashboard",
+    "proxy",
+    "network-monitor",
+    "traffic-monitor",
+    "sse",
+    "diagnostics"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT"
+}
