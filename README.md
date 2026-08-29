@@ -1,6 +1,7 @@
 # 🚀 Shadowrocket Connections Dashboard
 
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18.0-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Release](https://img.shields.io/github/v/release/summerKK/shadowrocket-dashboard?style=flat-square&color=indigo)](https://github.com/summerKK/shadowrocket-dashboard/releases)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](#)
 [![Zero-Dependencies](https://img.shields.io/badge/Dependencies-0%20External-6366f1?style=flat-square)](#)
 [![Privacy](https://img.shields.io/badge/Privacy-100%25%20Local%20Only-emerald?style=flat-square)](#)
