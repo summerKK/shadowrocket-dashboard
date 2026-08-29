@@ -3,10 +3,17 @@
   "version": "1.0.0",
   "description": "Modern real-time connections & traffic diagnostics dashboard for Shadowrocket",
   "type": "module",
-  "main": "server.mjs",
+  "main": "electron-main.mjs",
+  "author": "summerKK",
+  "license": "MIT",
   "scripts": {
     "start": "node server.mjs",
-    "dev": "node server.mjs"
+    "dev": "node server.mjs",
+    "app": "electron .",
+    "dist:mac": "electron-builder --mac",
+    "dist:mac:arm64": "electron-builder --mac --arm64",
+    "dist:mac:x64": "electron-builder --mac --x64",
+    "dist:mac:universal": "electron-builder --mac --universal"
   },
   "keywords": [
     "shadowrocket",
@@ -15,10 +22,59 @@
     "network-monitor",
     "traffic-monitor",
     "sse",
-    "diagnostics"
+    "diagnostics",
+    "electron",
+    "macos"
   ],
   "engines": {
     "node": ">=18.0.0"
   },
-  "license": "MIT"
+  "devDependencies": {
+    "electron": "^34.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.summer.shadowrocket.dashboard",
+    "productName": "Shadowrocket Dashboard",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "public/**/*",
+      "server.mjs",
+      "electron-main.mjs",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.icns",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "darkModeSupport": true,
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
+    },
+    "dmg": {
+      "title": "${productName} ${version}",
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ],
+      "window": {
+        "width": 540,
+        "height": 380
+      }
+    }
+  }
 }

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 512px;
+    height: 512px;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .icon-box {
+    width: 440px;
+    height: 440px;
+    border-radius: 98px;
+    background: linear-gradient(145deg, #1e1b4b 0%, #0f172a 50%, #020617 100%);
+    border: 1px solid rgba(99, 102, 241, 0.4);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .glow {
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.35) 0%, rgba(56, 189, 248, 0.15) 50%, transparent 70%);
+  }
+  svg {
+    width: 240px;
+    height: 240px;
+    fill: url(#rocket-grad);
+    filter: drop-shadow(0 10px 20px rgba(99, 102, 241, 0.5));
+    position: relative;
+    z-index: 2;
+  }
+</style>
+</head>
+<body>
+  <div class="icon-box">
+    <div class="glow"></div>
+    <svg viewBox="0 0 24 24">
+      <defs>
+        <linearGradient id="rocket-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#818cf8"/>
+          <stop offset="50%" stop-color="#6366f1"/>
+          <stop offset="100%" stop-color="#38bdf8"/>
+        </linearGradient>
+      </defs>
+      <path d="M13.13 2.55a1.5 1.5 0 0 0-2.26 0L4.2 9.22A1.5 1.5 0 0 0 4.14 11l4.86 6.48a1.5 1.5 0 0 0 2 .4l7.6-5.06a1.5 1.5 0 0 0 .5-1.92l-6-8.35ZM8.5 13a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z"/>
+    </svg>
+  </div>
+</body>
+</html>

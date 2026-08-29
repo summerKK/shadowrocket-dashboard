@@ -185,6 +185,19 @@
         align-items: center;
         justify-content: space-between;
         gap: 16px;
+        -webkit-app-region: drag;
+      }
+      .app-header button,
+      .app-header nav,
+      .app-header input,
+      .app-header a,
+      .app-header select,
+      .theme-dropdown-wrapper,
+      .status-pill {
+        -webkit-app-region: no-drag;
+      }
+      body.is-electron .app-header {
+        padding-left: 88px;
       }
 
       .logo-group {

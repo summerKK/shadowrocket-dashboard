@@ -237,17 +237,34 @@ const server = http.createServer(async (request, response) => {
   }
 });
 
-server.listen(port, '127.0.0.1', () => {
-  console.log(`\x1b[36m🚀 Shadowrocket Dashboard running at:\x1b[0m \x1b[1;32mhttp://127.0.0.1:${port}\x1b[0m`);
-  console.log(`\x1b[34m📡 Upstream diagnostic endpoint:\x1b[0m \x1b[33m${upstreamUrl}\x1b[0m\n`);
-  connectUpstream();
-});
+export function startServer(customPort = port) {
+  return new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(customPort, '127.0.0.1', () => {
+      server.removeListener('error', reject);
+      const actualPort = server.address().port;
+      console.log(`\x1b[36m🚀 Shadowrocket Dashboard running at:\x1b[0m \x1b[1;32mhttp://127.0.0.1:${actualPort}\x1b[0m`);
+      console.log(`\x1b[34m📡 Upstream diagnostic endpoint:\x1b[0m \x1b[33m${upstreamUrl}\x1b[0m\n`);
+      connectUpstream();
+      resolve({ server, port: actualPort });
+    });
+  });
+}
 
-function handleExit() {
+export function stopServer() {
   clearTimeout(reconnectTimer);
   if (currentAbortController) currentAbortController.abort();
-  server.close(() => process.exit(0));
+  return new Promise((resolve) => server.close(resolve));
 }
-process.on('SIGINT', handleExit);
-process.on('SIGTERM', handleExit);
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  startServer(port);
+  function handleExit() {
+    clearTimeout(reconnectTimer);
+    if (currentAbortController) currentAbortController.abort();
+    server.close(() => process.exit(0));
+  }
+  process.on('SIGINT', handleExit);
+  process.on('SIGTERM', handleExit);
+}
 
