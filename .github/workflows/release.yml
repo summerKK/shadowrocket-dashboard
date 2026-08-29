@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 jobs:
-  build-macos:
+  build:
     name: Build macOS DMG (${{ matrix.target }})
     runs-on: macos-latest
     strategy:
@@ -48,10 +48,8 @@ jobs:
         run: npm ci
 
       - name: Build macOS Binary & DMG (${{ matrix.arch }})
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          npx electron-builder --mac --${{ matrix.arch }}
+          npx electron-builder --mac --${{ matrix.arch }} --publish never
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -61,26 +59,44 @@ jobs:
             dist/*.dmg
             dist/*.zip
 
-      - name: Extract Tag Message
-        id: tag_message
-        if: startsWith(github.ref, 'refs/tags/')
+  publish-release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Extract Tag Message & Generate Notes
+        id: release_notes
         run: |
-          TAG_BODY=$(git tag -l --format='%(contents)' ${{ github.ref_name }})
+          TAG_NAME="${{ github.ref_name }}"
+          TAG_BODY=$(git tag -l --format='%(contents)' "$TAG_NAME")
           if [ -z "$TAG_BODY" ]; then
-            TAG_BODY="Release ${{ github.ref_name }}"
+            TAG_BODY="## 🚀 What's Changed in $TAG_NAME"
           fi
+          echo "title=$TAG_NAME" >> $GITHUB_OUTPUT
           echo "notes<<EOF" >> $GITHUB_OUTPUT
           echo "$TAG_BODY" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Publish to GitHub Release
+      - name: Create / Update GitHub Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
         with:
-          body: ${{ steps.tag_message.outputs.notes }}
+          name: ${{ steps.release_notes.outputs.title }}
+          body: ${{ steps.release_notes.outputs.notes }}
           files: |
-            dist/*.dmg
-            dist/*.zip
+            release-assets/*.dmg
+            release-assets/*.zip
           draft: false
           prerelease: false
           generate_release_notes: true
