@@ -168,10 +168,26 @@
         --reject-text: #e11d48;
       }
 
-      * { box-sizing: border-box; margin: 0; padding: 0; }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+      }
+      *::-webkit-scrollbar,
+      html::-webkit-scrollbar,
+      body::-webkit-scrollbar {
+        width: 0px !important;
+        height: 0px !important;
+        display: none !important;
+        background: transparent !important;
+      }
       html, body {
         background-color: var(--bg-main);
         overflow-x: hidden;
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
       }
       body {
         background-image: var(--bg-main-image);
@@ -182,38 +198,6 @@
         line-height: 1.5;
         -webkit-font-smoothing: antialiased;
         transition: background-color 0.25s ease, color 0.25s ease;
-      }
-
-      /* Global Dark Custom Scrollbars */
-      ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.16);
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: rgba(255, 255, 255, 0.3);
-      }
-      ::-webkit-scrollbar-corner {
-        background: transparent;
-      }
-      * {
-        scrollbar-width: thin;
-        scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
-      }
-      [data-theme="nordic-light"] ::-webkit-scrollbar-thumb {
-        background: rgba(0, 0, 0, 0.15);
-      }
-      [data-theme="nordic-light"] ::-webkit-scrollbar-thumb:hover {
-        background: rgba(0, 0, 0, 0.28);
-      }
-      [data-theme="nordic-light"] * {
-        scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
       }
 
       /* Layout */
@@ -808,10 +792,6 @@
         max-height: calc(100vh - 350px);
         min-height: 380px;
       }
-      .table-responsive::-webkit-scrollbar { width: 8px; height: 8px; }
-      .table-responsive::-webkit-scrollbar-track { background: var(--bg-main); }
-      .table-responsive::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
-      .table-responsive::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.25); }
 
       table {
         width: 100%;
