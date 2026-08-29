@@ -2690,7 +2690,31 @@
       // Initializer
       window.addEventListener('DOMContentLoaded', () => {
         initEvents();
-        connectSSE();
+        if (location.search.includes('preview=1')) {
+          $('dot').className = 'status-dot ok';
+          $('status-text').textContent = 'Shadowrocket 已连接';
+          const sampleData = [
+            { id: '4921', host: 'api.openai.com', proto: 'TCP', route: 'PROXY', rule: 'DOMAIN-SUFFIX,openai.com,AI', group: 'AI 策略组', node: '🇺🇸 vless-reality-vision-DMIT', server: '179.255.153.235', cost: 168, ua: 'OpenAI/1.24.0 (macOS)', timestamp: '14:36:52' },
+            { id: '4920', host: 'github.com', proto: 'TCP', route: 'PROXY', rule: 'DOMAIN-SUFFIX,github.com,PROXY', group: '海外加速', node: '🇯🇵 tokyo-bgp-01', server: '140.82.114.4', cost: 72, ua: 'git/2.39.0', timestamp: '14:36:50' },
+            { id: '4919', host: 'api.telegram.org', proto: 'TCP', route: 'PROXY', rule: 'IP-CIDR,149.154.160.0/20,Telegram', group: 'Telegram 专线', node: '🇸🇬 sg-iplc-direct', server: '149.154.167.220', cost: 95, ua: 'Telegram/10.9.1', timestamp: '14:36:48' },
+            { id: '4918', host: 'www.google.com', proto: 'TCP', route: 'PROXY', rule: 'DOMAIN-KEYWORD,google,PROXY', group: '节点选择', node: '🇺🇸 la-premium-02', server: '142.250.190.46', cost: 142, ua: 'Chrome/124.0.0.0', timestamp: '14:36:45' },
+            { id: '4917', host: 'gateway.discord.gg', proto: 'TCP', route: 'PROXY', rule: 'DOMAIN-SUFFIX,discord.gg,PROXY', group: '海外加速', node: '🇯🇵 tokyo-bgp-01', server: '162.159.135.234', cost: 84, ua: 'Discord/1.0.9032', timestamp: '14:36:41' },
+            { id: '4916', host: 'appleid.apple.com', proto: 'TCP', route: 'DIRECT', rule: 'DOMAIN-SUFFIX,apple.com,DIRECT', group: 'DIRECT', node: '', server: 'DIRECT', cost: 18, ua: '', timestamp: '14:36:39' },
+            { id: '4915', host: 'adservice.google.com', proto: 'TCP', route: 'REJECT', rule: 'DOMAIN-KEYWORD,adservice,REJECT', group: 'REJECT', node: '', server: 'REJECT', cost: null, ua: 'Safari/17.4.1', timestamp: '14:36:35' },
+            { id: '4914', host: 'cdn.jsdelivr.net', proto: 'TCP', route: 'DIRECT', rule: 'GEOIP,CN,DIRECT', group: 'DIRECT', node: '', server: 'DIRECT', cost: 22, ua: 'Chrome/124.0.0.0', timestamp: '14:36:30' },
+            { id: '4913', host: 'registry.npmjs.org', proto: 'TCP', route: 'PROXY', rule: 'MATCH,PROXY', group: '节点选择', node: '🇭🇰 hk-iplc-01', server: '104.16.27.35', cost: 46, ua: 'npm/10.5.0', timestamp: '14:36:25' }
+          ];
+          sampleData.forEach(d => {
+            state.connections.set(d.id, d);
+            if (d.group) state.groups.add(d.group);
+          });
+          state.eventCount = 42;
+          updateStats();
+          renderTable();
+          renderAnalytics();
+        } else {
+          connectSSE();
+        }
       });
     </script>
   </body>

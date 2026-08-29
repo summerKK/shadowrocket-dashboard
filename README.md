@@ -7,6 +7,10 @@
 
 适用于 **Shadowrocket (小火箭)** 的现代化本机实时网络连接与流量诊断看板。通过解析 Shadowrocket 本地日志流 (`/api/log`)，提供直观的连接监控、路由分流分析、规则匹配诊断与原始日志控制台。
 
+<p align="center">
+  <img src="./docs/images/dashboard-preview.png" alt="Shadowrocket Connections Dashboard Preview" width="100%" style="border-radius: 10px; box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);" />
+</p>
+
 ---
 
 ## ✨ 核心特性
