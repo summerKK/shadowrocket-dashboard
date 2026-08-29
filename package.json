@@ -1,6 +1,6 @@
 {
   "name": "shadowrocket-dashboard",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "description": "Modern real-time connections & traffic diagnostics dashboard for Shadowrocket",
   "type": "module",
   "main": "electron-main.mjs",
