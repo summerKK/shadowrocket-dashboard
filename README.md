@@ -54,6 +54,13 @@ npm run dist:mac
 - 💿 **`dist/Shadowrocket Dashboard-1.0.0-arm64.dmg`**（双击即可拖拽安装）
 - 🚀 **`dist/mac-arm64/Shadowrocket Dashboard.app`**（原生应用包）
 
+> 💡 **macOS 提示“已损坏，无法打开 / 移到废纸篓”？**
+> 这是因为开源软件未包含苹果付费开发者证书签名，macOS Gatekeeper 自动添加了下载隔离属性。在终端中执行以下命令即可一键秒开：
+> ```bash
+> sudo xattr -rd com.apple.quarantine "/Applications/Shadowrocket Dashboard.app"
+> ```
+> *或者：在访达的「应用程序」中，**按住 Control 键右键点击应用图标**，选择 **「打开」** 并在弹窗中再次点击「打开」即可。*
+
 ---
 
 ### 🌐 方式 B：以本地 Web 网页服务运行 (零依赖)
