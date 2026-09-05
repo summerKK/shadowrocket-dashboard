@@ -1,6 +1,28 @@
 (() => {
   const $ = id => document.getElementById(id);
   const esc = text => String(text ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  // ProMotion 节流：本应用 rAF 的唯一大户是 globe 渲染循环（120Hz 屏上满帧跑会吃掉半个 GPU）。
+  // 按“回调函数”分桶限帧到 ~40fps：每个循环（globe 主循环 / rings ticker / FPS 监控）
+  // 独立计速、互不抢占；未到间隔时递归重查直到该消费者自己的窗口到期。
+  // three.js 的时钟按真实时间差推进，跳帧后动画速度不变，只是帧率降低。
+  // 注意：CSS/SMIL 动画不走 rAF，不受此影响（SVG 属性动画走主线程重绘，由省电冻结另行覆盖）。
+  const nativeRaf = window.requestAnimationFrame.bind(window);
+  const FRAME_MIN_INTERVAL = 1000 / 40;
+  const lastFrameByCb = new WeakMap();
+  window.requestAnimationFrame = (cb) => {
+    const attempt = (now) => {
+      const last = lastFrameByCb.get(cb) || 0;
+      if (now - last >= FRAME_MIN_INTERVAL) {
+        lastFrameByCb.set(cb, now);
+        cb(now);
+      } else {
+        nativeRaf(attempt);
+      }
+    };
+    return nativeRaf(attempt);
+  };
+
   let world, loading, lookupBusy = false, geoError = '', selectedHub = '', selectedApp = '', searchQuery = '';
   let lastMaxCount = 1, lastTotalLocated = 1;
   const locations = new Map();
@@ -64,7 +86,8 @@
         const fps = Math.round((fpsFrames * 1000) / (now - fpsLast));
         fpsFrames = 0;
         fpsLast = now;
-        if (fps > 0 && fps < 40) fpsLowStreak++;
+        // 限帧后健康帧率 ≈ 40fps，阈值须低于它，避免取整抖动误降像素比
+        if (fps > 0 && fps < 30) fpsLowStreak++;
         else if (fpsLowStreak > 0) fpsLowStreak--;
         if (fpsLowStreak >= 2 && pixelRatioCap > 1) {
           pixelRatioCap = 1;
@@ -1050,6 +1073,17 @@
   }
 
   function render(force = false) {
+    if (document.hidden && !force) {
+      // 窗口不可见：暂停 globe 动画与自转（恢复可见后由 visibilitychange 触发 render 续上）
+      if (globe) {
+        try {
+          globe.pauseAnimation();
+          const controls = globe.controls();
+          if (controls) controls.autoRotate = false;
+        } catch {}
+      }
+      return;
+    }
     const state = getState();
     $('view-map').classList.toggle('is-paused', state.paused);
     const svg = $('map-svg');
@@ -1985,6 +2019,9 @@
       // Apply initial projection state
       setProjection(currentProjection, false);
       $('map-rotate-toggle')?.classList.toggle('active', autoRotateEnabled);
+
+      // 窗口恢复可见时立即恢复渲染（隐藏期间定时器被系统节流到分钟级）
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
 
       setInterval(render, 2000);
     },

@@ -2006,7 +2006,7 @@
       const RENDER_INTERVAL = 120; // Max ~8 DOM flushes per sec during high-frequency log bursts
 
       function scheduleRender() {
-        if (state.paused) return;
+        if (state.paused || document.hidden) return;
         const now = Date.now();
         if (now - lastRenderTimestamp >= RENDER_INTERVAL) {
           lastRenderTimestamp = now;
@@ -2020,11 +2020,17 @@
         }
       }
 
-      // 左 HUD · 实时连接流水
+      // 左 HUD · 实时连接流水（内容无变化时跳过 DOM 重建）
+      let lastFeedSig = '';
       function renderLiveFeed() {
         const el = $('live-feed');
         if (!el) return;
         const items = [...state.connections.values()].sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0)).slice(0, 30);
+        let closedCount = 0;
+        for (const x of items) if (x.closed) closedCount++;
+        const feedSig = `${items[0]?.id || ''}:${closedCount}:${items.length}:${state.connections.size}`;
+        if (feedSig === lastFeedSig) return;
+        lastFeedSig = feedSig;
         const count = $('live-feed-count');
         if (count) count.textContent = `Σ ${state.connections.size}`;
         el.innerHTML = items.map(x => {
@@ -2176,14 +2182,11 @@
         });
         if (newGroupsFound) {
           const currentVal = $('group-filter').value;
-          $('group-filter').innerHTML = `<option value="ALL">全部策略组</option>` + 
+          $('group-filter').innerHTML = `<option value="ALL">全部策略组</option>` +
             [...state.groups].map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
           $('group-filter').value = currentVal;
         }
-
-        if (state.activeView === 'analytics') {
-          renderAnalytics();
-        }
+        // 注意：analytics 视图的渲染由 flushRender 统一负责，这里不再重复调用
       }
 
       // Log Parsing Engine
@@ -2775,6 +2778,11 @@
         $('api-modal-close').addEventListener('click', closeApiModal);
         $('btn-test-api').addEventListener('click', testApiConnection);
         $('btn-save-api').addEventListener('click', saveApiConfig);
+
+        // 窗口恢复可见时立即刷新一次（隐藏期间数据仍在累积、渲染被跳过）
+        document.addEventListener('visibilitychange', () => {
+          if (!document.hidden) { updateStats(); flushRender(); }
+        });
 
         // Global Shortcuts
         window.addEventListener('keydown', (e) => {
