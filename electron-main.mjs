@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, Menu, nativeTheme } from 'electron';
+import { app, BrowserWindow, shell, Menu, nativeTheme, session } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startServer, stopServer } from './server.mjs';
@@ -31,6 +31,9 @@ async function createWindow(port) {
 
   // Load local dashboard with electron flag
   await mainWindow.loadURL(`http://127.0.0.1:${port}?electron=1`);
+
+  // Prevent trackpad pinch-to-zoom from scaling entire window
+  mainWindow.webContents.setVisualZoomLevelLimits(1, 1);
 
   // Open external links in user's default browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -118,6 +121,15 @@ function setupMenu() {
 app.whenReady().then(async () => {
   nativeTheme.themeSource = 'dark';
   setupMenu();
+
+  if (session.defaultSession) {
+    session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+      if (permission === 'geolocation') {
+        return callback(true);
+      }
+      callback(false);
+    });
+  }
 
   try {
     const { port } = await startServer(8787).catch(async () => {

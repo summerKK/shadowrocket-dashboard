@@ -1,6 +1,6 @@
 {
   "name": "shadowrocket-dashboard",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "description": "Modern real-time connections & traffic diagnostics dashboard for Shadowrocket",
   "type": "module",
   "main": "electron-main.mjs",
@@ -13,7 +13,8 @@
     "dist:mac": "electron-builder --mac",
     "dist:mac:arm64": "electron-builder --mac --arm64",
     "dist:mac:x64": "electron-builder --mac --x64",
-    "dist:mac:universal": "electron-builder --mac --universal"
+    "dist:mac:universal": "electron-builder --mac --universal",
+    "test": "node --test"
   },
   "keywords": [
     "shadowrocket",
@@ -44,7 +45,9 @@
       "public/**/*",
       "server.mjs",
       "electron-main.mjs",
-      "package.json"
+      "package.json",
+      "geo.mjs",
+      "data/**/*"
     ],
     "mac": {
       "category": "public.app-category.developer-tools",
@@ -55,8 +58,12 @@
         "zip"
       ],
       "darkModeSupport": true,
-      "hardenedRuntime": true,
-      "gatekeeperAssess": false
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "extendInfo": {
+        "NSLocationUsageDescription": "Shadowrocket Dashboard 在 3D 流量地球上精确定位您的本机位置",
+        "NSLocationWhenInUseUsageDescription": "Shadowrocket Dashboard 在 3D 流量地球上精确定位您的本机位置"
+      }
     },
     "dmg": {
       "title": "${productName} ${version}",

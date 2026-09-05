@@ -2,6 +2,7 @@ import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { lookupCountry, resolveHost } from './geo.mjs';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT || 8787);
@@ -17,6 +18,7 @@ const MIME_TYPES = {
   '.css': 'text/css; charset=utf-8',
   '.js': 'application/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  '.geojson': 'application/json; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.ico': 'image/x-icon',
@@ -120,6 +122,26 @@ async function readJsonBody(request) {
 const server = http.createServer(async (request, response) => {
   const url = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
 
+  if (url.pathname === '/api/geo' && request.method === 'POST') {
+    try {
+      const body = await readJsonBody(request);
+      const list = Array.isArray(body.ips) ? body.ips : (Array.isArray(body.hosts) ? body.hosts : (Array.isArray(body.targets) ? body.targets : []));
+      if (!Array.isArray(list) || list.length > 128 || list.some(x => typeof x !== 'string' || x.length > 128)) {
+        throw new Error('查询参数必须是最多 128 个 IP 或域名条目的数组');
+      }
+      const countries = {};
+      await Promise.all(list.map(async item => {
+        countries[item] = await resolveHost(item);
+      }));
+      response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      response.end(JSON.stringify({ countries }));
+    } catch (error) {
+      response.writeHead(400, { 'Content-Type': 'application/json' });
+      response.end(JSON.stringify({ error: error.message }));
+    }
+    return;
+  }
+
   if (url.pathname === '/events') {
     response.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -180,6 +202,42 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
+  // API to detect local machine public IP and location
+  if (url.pathname === '/api/origin' && request.method === 'GET') {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 2000);
+      const res = await fetch('https://myip.ipip.net/json', { signal: controller.signal });
+      clearTimeout(timer);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.ret === 'ok' && Array.isArray(data.data?.location)) {
+          const loc = data.data.location;
+          const country = 'CN';
+          const province = loc[1] || '';
+          const city = loc[2] || '';
+          const ip = data.data.ip || '';
+          response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          return response.end(JSON.stringify({
+            success: true,
+            ip,
+            country,
+            province,
+            city,
+            name: city ? `中国 · ${city}` : (province ? `中国 · ${province}` : '中国 · 本机')
+          }));
+        }
+      }
+    } catch {}
+
+    response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    return response.end(JSON.stringify({
+      success: true,
+      country: 'CN',
+      name: '中国 · 本机'
+    }));
+  }
+
   // API to get / update configuration
   if (url.pathname === '/api/config') {
     if (request.method === 'GET') {
@@ -228,7 +286,7 @@ const server = http.createServer(async (request, response) => {
     const contentType = MIME_TYPES[ext] || 'text/plain; charset=utf-8';
     response.writeHead(200, {
       'Content-Type': contentType,
-      'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=3600',
+      'Cache-Control': ['.html', '.js', '.css'].includes(ext) ? 'no-cache' : 'public, max-age=3600',
     });
     response.end(body);
   } catch {
@@ -267,4 +325,3 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   process.on('SIGINT', handleExit);
   process.on('SIGTERM', handleExit);
 }
-

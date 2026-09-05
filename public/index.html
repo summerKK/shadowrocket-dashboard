@@ -2,7 +2,7 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Shadowrocket Connections Dashboard</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366f1'><path d='M13.13 2.55a1.5 1.5 0 0 0-2.26 0L4.2 9.22A1.5 1.5 0 0 0 4.14 11l4.86 6.48a1.5 1.5 0 0 0 2 .4l7.6-5.06a1.5 1.5 0 0 0 .5-1.92l-6-8.35ZM8.5 13a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z'/></svg>" />
     <script>
@@ -172,49 +172,86 @@
         box-sizing: border-box;
         margin: 0;
         padding: 0;
-        scrollbar-width: none !important;
-        -ms-overflow-style: none !important;
       }
-      *::-webkit-scrollbar,
-      html::-webkit-scrollbar,
-      body::-webkit-scrollbar {
-        width: 0px !important;
-        height: 0px !important;
-        display: none !important;
-        background: transparent !important;
-      }
+
       html, body {
+        width: 100vw;
+        height: 100vh;
+        max-width: 100vw;
+        max-height: 100vh;
+        margin: 0;
+        padding: 0;
+        overflow: hidden !important;
+        overscroll-behavior: none !important;
         background-color: var(--bg-main);
-        overflow-x: hidden;
-        scrollbar-width: none !important;
-        -ms-overflow-style: none !important;
       }
+
       body {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
         background-image: var(--bg-main-image);
         background-attachment: fixed;
         color: var(--text-primary);
         font-family: var(--font-sans);
-        min-height: 100vh;
         line-height: 1.5;
         -webkit-font-smoothing: antialiased;
         transition: background-color 0.25s ease, color 0.25s ease;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      /* Desktop App Native Details */
+      input, textarea, select, [contenteditable="true"], .terminal-body, table td, .selectable, pre, code {
+        user-select: text;
+        -webkit-user-select: text;
+      }
+      img, a, svg {
+        -webkit-user-drag: none;
+      }
+
+      /* Native macOS Overlay-style Scrollbars */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 9999px;
+        border: 2px solid transparent;
+        background-clip: padding-box;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.28);
+        background-clip: padding-box;
       }
 
       /* Layout */
       .app-header {
-        position: sticky;
-        top: 0;
-        z-index: 40;
+        flex-shrink: 0;
+        height: 54px;
+        min-height: 54px;
+        max-height: 54px;
+        width: 100%;
+        box-sizing: border-box;
+        position: relative;
+        z-index: 100;
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
         background: var(--bg-header);
         border-bottom: 1px solid var(--border-subtle);
-        padding: 14px 28px;
+        padding: 0 24px;
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 16px;
         -webkit-app-region: drag;
+        user-select: none;
+        -webkit-user-select: none;
       }
       .app-header button,
       .app-header nav,
@@ -506,7 +543,14 @@
 
       /* Main container */
       .container {
-        padding: 24px 28px 40px;
+        flex: 1;
+        min-height: 0;
+        width: 100%;
+        box-sizing: border-box;
+        overflow-y: auto;
+        overflow-x: hidden;
+        overscroll-behavior: contain;
+        padding: 20px 24px 32px;
         max-width: 1600px;
         margin: 0 auto;
       }
@@ -1355,8 +1399,9 @@
         .action-group { justify-content: space-between; }
       }
     </style>
+      <link rel="stylesheet" href="/traffic-map.css">
   </head>
-  <body>
+  <body class="view-is-map">
     <!-- Top Header -->
     <header class="app-header">
       <div class="logo-group">
@@ -1385,7 +1430,11 @@
       <div class="header-right">
         <!-- View Tabs -->
         <nav class="nav-tabs" aria-label="视图切换">
-          <button class="nav-tab active" data-view="table">
+          <button class="nav-tab active" data-view="map">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+            🌍 3D 流量地球
+          </button>
+          <button class="nav-tab" data-view="table">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18"/></svg>
             连接列表
           </button>
@@ -1504,9 +1553,8 @@
       </section>
 
       <!-- View 1: Table View -->
-      <section id="view-table" class="tab-content active">
         <!-- Control Toolbar -->
-        <div class="toolbar">
+        <div class="toolbar" id="connection-toolbar" style="display:none;">
           <div class="filter-group">
             <!-- Search -->
             <div class="search-box">
@@ -1554,6 +1602,7 @@
           </div>
         </div>
 
+      <section id="view-table" class="tab-content" style="display:none;">
         <div class="hint-banner">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
           HTTPS 流量在未配置 MITM 解密证书时只显示域名/主机；开启 MITM 或 HTTP 协议可解析完整请求路径。点击任意行可查看详细握手与规则信息。
@@ -1610,6 +1659,121 @@
       </section>
 
       <!-- View 3: Traffic Analytics -->
+      <section id="view-map" class="traffic-map" aria-label="实时连接地图" style="display:block;">
+        <div id="map-card" class="map-card">
+          <div class="map-heading">
+            <div class="map-title-row">
+              <h2>世界网络流量监控 <span class="ls-badge">3D Polyglobe</span></h2>
+              <div class="map-stat-chips">
+                <span class="map-chip"><strong id="map-count">0</strong> 连接</span>
+                <span class="map-chip"><strong id="map-located">0</strong> 已定位</span>
+                <span class="map-chip"><strong id="map-regions">0</strong> 枢纽</span>
+                <span class="map-chip" id="map-unknown-wrap"><strong id="map-unknown">0</strong> 未绘制</span>
+                <span class="map-chip" id="map-origin-chip" title="点击重新获取本机真实地理位置" style="cursor:pointer;"><strong id="map-origin-label">📍 中国 · 本机</strong></span>
+              </div>
+            </div>
+            <div class="map-controls">
+              <div class="map-proj-group" role="group" aria-label="投影模式">
+                <button id="map-proj-3d" class="map-proj-btn active" title="3D 交互地球 (Polyglobe 风格)">🌍 3D</button>
+                <button id="map-proj-2d" class="map-proj-btn" title="2D 平面展开图">🗺️ 2D</button>
+              </div>
+              <button id="map-rotate-toggle" class="map-tool-btn active" title="开/关地球自转">🔄 自转</button>
+              <button id="map-zoom-reset" class="map-tool-btn" title="重置视角与缩放">⟲ 视野</button>
+              <button id="map-fullscreen" class="map-tool-btn" title="全屏查看">⛶ 全屏</button>
+              <button id="map-locate-btn" class="map-tool-btn" title="请求浏览器精确地理位置 (GPS/IP)">📍 重新定位</button>
+              <label>维度<select id="map-mode">
+                <option value="target" selected>🎯 真实目标</option>
+                <option value="relay">🔀 两跳中继</option>
+                <option value="proxy">🏢 代理入口</option>
+              </select></label>
+              <label>范围<select id="map-window"><option value="active">活跃连接</option><option value="recent">最近 60 秒</option><option value="all">保留记录</option></select></label>
+              <label>节点<select id="map-node"><option value="">全部节点</option></select></label>
+            </div>
+          </div>
+          <div id="map-layout" class="map-layout">
+            <div class="map-stage mode-3d" id="map-stage-container">
+              <!-- 3D WebGL Earth Stage (Polyglobe Engine) -->
+              <div id="globe-3d-stage" class="globe-3d-stage"></div>
+              <!-- 2D SVG Flat Map Stage -->
+              <svg id="map-svg" class="map-svg" viewBox="0 0 1080 540" role="img" aria-label="Little Snitch 风格世界连接网络">
+                <defs>
+                  <pattern id="map-grid-pattern" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M60 0H0V60" fill="none" class="map-grid"/></pattern>
+                  <filter id="map-glow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                  <filter id="map-glow-strong" x="-100%" y="-100%" width="300%" height="300%">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                  <radialGradient id="heat-glow-green" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#10b981" stop-opacity="0.85"/>
+                    <stop offset="35%" stop-color="#10b981" stop-opacity="0.45"/>
+                    <stop offset="100%" stop-color="#10b981" stop-opacity="0"/>
+                  </radialGradient>
+                  <radialGradient id="heat-glow-blue" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.85"/>
+                    <stop offset="35%" stop-color="#0284c7" stop-opacity="0.45"/>
+                    <stop offset="100%" stop-color="#0284c7" stop-opacity="0"/>
+                  </radialGradient>
+                  <radialGradient id="heat-glow-hot" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.95"/>
+                    <stop offset="35%" stop-color="#f97316" stop-opacity="0.5"/>
+                    <stop offset="70%" stop-color="#ef4444" stop-opacity="0.2"/>
+                    <stop offset="100%" stop-color="#ef4444" stop-opacity="0"/>
+                  </radialGradient>
+                </defs>
+                <rect width="1080" height="540" fill="url(#map-grid-pattern)"/>
+                <g id="map-viewport">
+                  <g id="map-land" class="map-land"></g>
+                  <g id="map-arcs"></g>
+                  <g id="map-points"></g>
+                </g>
+              </svg>
+              <!-- Floating Inspector Popover -->
+              <div id="map-popover" class="map-popover" hidden></div>
+              <!-- Map Legend -->
+              <div class="map-legend">
+                <span class="legend-hot"><i style="background:#f59e0b; box-shadow:0 0 8px #f59e0b"></i>🔥 高流量热点 (光晕聚焦)</span>
+                <span><i style="background:#10b981; box-shadow:0 0 6px #10b981"></i>🟢 活跃传输</span>
+                <span><i style="background:#60a5fa"></i>🔵 代理目标</span>
+                <span><i style="background:#34d399"></i>直连目标</span>
+                <span><i style="background:#f59e0b"></i>💻 本机</span>
+                <span id="legend-tip" class="legend-tip">💡 鼠标拖拽旋转 · 滚轮缩放 · 悬停探测 · 点击地标或应用卡片快速联动</span>
+              </div>
+            </div>
+
+            <!-- Bottom Section: Requested Websites & App Grouping Cards -->
+            <div class="map-bottom-panel">
+              <div class="map-bottom-header">
+                <div class="map-bottom-title-wrap">
+                  <div class="map-bottom-title">
+                    <span style="font-size:16px;">🌐</span>
+                    <h3>请求网站与应用服务分组</h3>
+                  </div>
+                  <span id="map-list-title" class="map-bottom-meta">应用与连接分组</span>
+                </div>
+                <div class="map-bottom-actions">
+                  <button id="map-selection" class="map-button map-selected">全部服务 · 清除筛选</button>
+                  <div class="map-search-wrap">
+                    <input type="text" id="map-search" class="map-search-input" placeholder="🔍 搜索请求域名、应用、IP或机房…" />
+                  </div>
+                </div>
+              </div>
+              <div id="map-connections" class="map-connections-grid"></div>
+            </div>
+          </div>
+          <div id="map-message" class="map-message" role="status" hidden></div>
+          <button id="map-retry" class="map-button" hidden>重试加载</button>
+        </div>
+      </section>
+
       <section id="view-analytics" class="analytics-view">
         <div class="analytics-grid">
           <!-- Top Domains -->
@@ -1684,6 +1848,7 @@
           <div class="drawer-section">
             <div class="section-label">目标与 URL 信息</div>
             <div class="detail-row"><span class="detail-key">目标域名 / Host</span><span id="d-host" class="detail-val">—</span></div>
+            <div class="detail-row"><span class="detail-key">连接端点（代理时为入口）</span><span id="d-remote" class="detail-val">—</span></div>
             <div class="detail-row"><span class="detail-key">完整 URL</span><span id="d-url" class="detail-val">—</span></div>
           </div>
 
@@ -1694,7 +1859,7 @@
             <div class="detail-row"><span class="detail-key">最终使用节点</span><span id="d-node" class="detail-val">—</span></div>
             <div class="detail-row"><span class="detail-key">命中分流规则</span><span id="d-rule" class="detail-val">—</span></div>
             <div class="detail-row"><span class="detail-key">策略组 (Group)</span><span id="d-group" class="detail-val">—</span></div>
-            <div class="detail-row"><span class="detail-key">出站服务器 IP/端点</span><span id="d-server" class="detail-val">—</span></div>
+            <div class="detail-row"><span class="detail-key">代理协议 (Server)</span><span id="d-server" class="detail-val">—</span></div>
             <div class="detail-row"><span class="detail-key">子策略 (Policy)</span><span id="d-policy" class="detail-val">—</span></div>
           </div>
 
@@ -1788,6 +1953,9 @@
     <!-- Toast Notification Container -->
     <div id="toast-container" class="toast-container"></div>
 
+    <script src="/connection-log.js"></script>
+    <script src="/map/globe.gl.min.js"></script>
+    <script src="/traffic-map.js"></script>
     <script>
       // State Store
       const state = {
@@ -1799,7 +1967,7 @@
         eventCount: 0,
         recentEventsWindow: [],
         paused: false,
-        activeView: 'table',
+        activeView: 'map',
         filterRoute: 'ALL',
         filterStatus: 'ALL',
         filterGroup: 'ALL',
@@ -1837,6 +2005,8 @@
           renderTable();
         } else if (state.activeView === 'stream') {
           flushTerminalBuffer();
+        } else if (state.activeView === 'map') {
+          TrafficMap.render();
         } else if (state.activeView === 'analytics') {
           renderAnalytics();
         }
@@ -1943,96 +2113,9 @@
       function parseLog(message, timestamp) {
         state.eventCount++;
         state.recentEventsWindow.push(Date.now());
-
-        // Extract connection ID
-        const idMatch = message.match(/<(\d+)>/);
-        const id = idMatch ? idMatch[1] : '0';
-
-        const item = state.connections.get(id) || {
-          id,
-          firstSeen: timestamp,
-          timestamp,
-          rawLogs: [],
-          closed: false
-        };
-
-        item.timestamp = timestamp;
-        item.rawLogs.push(`[${timestamp}] ${message}`);
-        if (item.rawLogs.length > 20) item.rawLogs.shift();
-
-        // URL
-        const requestUrl = message.match(/(?:^|\n)\s*url = ([^\n]+)/);
-        if (requestUrl) item.url = requestUrl[1].replace(/,\s*$/, '').trim();
-
-        // Host
-        const target = message.match(/(?:rule url|remove host|lookup host)\s*=>\s*([^\s>]+)/) || message.match(/tunnel\s*=>\s*([^\s,]+)/);
-        if (target) item.host = target[1].replace(/:\d+$/, '');
-
-        // Rule extraction and clean node suffix from rule (e.g. "... # 🇺🇸vless-reality-vision-DMIT,")
-        const rule = message.match(/result = ([^\n]+)|(?:tcp|udp|dns)?\s*rule => \{\s*(?:pattern = ([^\n]+)\s+)?result = ([^\n]+)/);
-        if (rule) {
-          let rawRule = (rule[2] ? `${rule[2]} -> ${rule[3]}` : (rule[1] || rule[3] || '')).trim();
-          const ruleNodeMatch = rawRule.match(/#\s*([^,\n\r}]+)/);
-          if (ruleNodeMatch) {
-            item.node = ruleNodeMatch[1].replace(/[,\s]+$/, '').trim();
-            rawRule = rawRule.replace(/#.*$/, '').replace(/,\s*$/, '').trim();
-          }
-          item.rule = rawRule;
-        }
-
-        // Direct node match anywhere in message with #
-        const anyNodeMatch = message.match(/#\s*([^,\n\r}]+)/);
-        if (anyNodeMatch && (!item.node || item.node === 'PROXY')) {
-          item.node = anyNodeMatch[1].replace(/[,\s]+$/, '').trim();
-        }
-
-        // Route Type
-        const route = message.match(/type = (PROXY|DIRECT|REJECT)/) || message.match(/\b(PROXY|DIRECT|REJECT)\b/);
-        if (route) item.route = route[1];
-
-        // Policy & Group
-        const policy = message.match(/server => ([^\s]+) policy => ([^\s]+) group => ([^\s]+)/);
-        if (policy) {
-          item.server = policy[1];
-          item.policy = policy[2];
-          item.group = policy[3];
-        }
-
-        // Tunnel Node Alias
-        const node = message.match(/tunnel => [^\n]+?#\s*(.+)$/);
-        if (node) item.node = node[1].replace(/[,\s]+$/, '').trim();
-
-        // User Agent
-        const ua = message.match(/ua = (.+)$/);
-        if (ua) item.ua = ua[1].trim();
-
-        // Handshake Cost (Integer rounded)
-        const cost = message.match(/cost => ([\d.]+) ms/);
-        if (cost) item.cost = Math.round(Number(cost[1]));
-
-        // Protocol Detection
-        if (item.url) {
-          item.proto = item.url.startsWith('https://') ? 'HTTPS' : (item.url.startsWith('http://') ? 'HTTP' : 'TCP');
-        } else if (message.includes('udp')) {
-          item.proto = 'UDP';
-        } else {
-          item.proto = 'TCP';
-        }
-
-        // Connection Closed Indicators
-        if (message.includes('remove host') || message.includes('disconnect metrics') || message.includes('closed')) {
-          item.closed = true;
-        }
-
-        state.connections.set(id, item);
-
-        // Memory prune check
+        const item = ConnectionLog.apply(state.connections, message, timestamp);
         if (state.eventCount % 40 === 0) pruneConnections();
-
-        // Push to terminal
         appendTerminalLine(timestamp, message, item);
-
-        // Schedule throttled render
         scheduleRender();
       }
 
@@ -2190,7 +2273,7 @@
       }
 
       // Render Connection Table
-      function renderTable() {
+      function filteredConnections() {
         const query = state.searchQuery.toLowerCase();
         const routeFilter = state.filterRoute;
         const statusFilter = state.filterStatus;
@@ -2203,12 +2286,16 @@
           if (groupFilter !== 'ALL' && x.group !== groupFilter) return false;
 
           if (query) {
-            const searchStr = `${x.id} ${x.host || ''} ${x.url || ''} ${x.rule || ''} ${x.route || ''} ${x.group || ''} ${x.node || ''} ${x.server || ''} ${x.ua || ''}`.toLowerCase();
+            const searchStr = `${x.id} ${x.host || ''} ${x.url || ''} ${x.rule || ''} ${x.route || ''} ${x.group || ''} ${x.node || ''} ${x.server || ''} ${x.remoteIP || ''} ${x.ua || ''}`.toLowerCase();
             if (!searchStr.includes(query)) return false;
           }
           return true;
-        }).slice(0, 120);
+        });
+        return items;
+      }
 
+      function renderTable() {
+        const items = filteredConnections().slice(0, 120);
         const tbody = $('connection-rows');
 
         if (!items.length) {
@@ -2360,6 +2447,7 @@
         $('d-proto').textContent = item.proto || 'TCP';
 
         $('d-host').textContent = item.host || '—';
+        $('d-remote').textContent = item.remoteIP ? `${item.remoteIP} : ${item.remotePort || '—'}` : '未知';
         $('d-url').textContent = item.url || '未解密或未获取完整 URL (需开启 MITM)';
 
         $('d-route').textContent = item.route || '—';
@@ -2439,12 +2527,21 @@
             tab.classList.add('active');
             const view = tab.getAttribute('data-view');
             state.activeView = view;
+            $('connection-toolbar').style.display = view === 'table' ? 'flex' : 'none';
 
             $('view-table').style.display = view === 'table' ? 'block' : 'none';
             $('view-stream').style.display = view === 'stream' ? 'block' : 'none';
             $('view-analytics').style.display = view === 'analytics' ? 'block' : 'none';
+            $('view-map').style.display = view === 'map' ? 'block' : 'none';
+            document.body.classList.toggle('view-is-map', view === 'map');
+            if (view === 'map') {
+              TrafficMap.render();
+              setTimeout(() => TrafficMap.render(), 60);
+            } else {
+              TrafficMap.render();
+            }
 
-            if (view === 'table') renderTable();
+            if (view === 'table') flushRender();
             if (view === 'analytics') renderAnalytics();
             if (view === 'stream' && $('term-autoscroll').checked) {
               const body = $('terminal-body');
@@ -2461,7 +2558,7 @@
           $('search-clear-btn').style.display = val ? 'block' : 'none';
           searchDebounceTimer = setTimeout(() => {
             state.searchQuery = val;
-            renderTable();
+            flushRender();
           }, 100);
         });
 
@@ -2469,7 +2566,7 @@
           state.searchQuery = '';
           $('search-input').value = '';
           $('search-clear-btn').style.display = 'none';
-          renderTable();
+          flushRender();
           $('search-input').focus();
         });
 
@@ -2479,34 +2576,36 @@
             document.querySelectorAll('#route-filters .segment-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             state.filterRoute = btn.getAttribute('data-filter');
-            renderTable();
+            flushRender();
           });
         });
 
         // Status & Group dropdowns
         $('status-filter').addEventListener('change', (e) => {
           state.filterStatus = e.target.value;
-          renderTable();
+          flushRender();
         });
         $('group-filter').addEventListener('change', (e) => {
           state.filterGroup = e.target.value;
-          renderTable();
+          flushRender();
         });
 
         // Toolbar buttons
         $('btn-pause').addEventListener('click', () => {
           state.paused = !state.paused;
+          $('view-map').classList.toggle('is-paused', state.paused);
           $('btn-pause').classList.toggle('paused', state.paused);
           $('btn-pause-text').textContent = state.paused ? '恢复刷新' : '暂停刷新';
           showToast(state.paused ? '已暂停日志实时刷新' : '已恢复日志实时刷新', state.paused ? '⏸' : '▶');
           if (!state.paused) {
             updateStats();
-            renderTable();
+            flushRender();
           }
         });
 
         $('btn-clear').addEventListener('click', () => {
           state.connections.clear();
+          TrafficMap.clear();
           state.groups.clear();
           state.rawLines = [];
           state.eventCount = 0;
@@ -2514,7 +2613,7 @@
           $('term-line-count').textContent = '0 lines';
           $('group-filter').innerHTML = '<option value="ALL">全部策略组</option>';
           updateStats();
-          renderTable();
+          flushRender();
           showToast('已清空所有连接记录');
         });
 
@@ -2758,6 +2857,10 @@
           showToast(`保存失败: ${e.message}`, '⚠️');
         }
       }
+
+      TrafficMap.init(() => state, filteredConnections, openDrawer);
+      TrafficMap.render();
+      setTimeout(() => TrafficMap.render(), 100);
 
       // Connect SSE Stream
       function connectSSE() {
