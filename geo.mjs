@@ -54,7 +54,13 @@ export function lookupCountry(ip) {
   return null;
 }
 
+// 域名定位缓存带上限：长期运行的 Electron 进程里无界 Map 会缓慢吃内存
 const domainCache = new Map();
+const DOMAIN_CACHE_MAX = 5000;
+function cacheDomain(key, value) {
+  if (domainCache.size >= DOMAIN_CACHE_MAX) domainCache.delete(domainCache.keys().next().value);
+  domainCache.set(key, value);
+}
 
 const KNOWN_DOMAINS = [
   [/(\.|\/|^)(google|youtube|googlevideo|gstatic|gmail|openai|chatgpt|github|githubusercontent|githubassets|apple|icloud|aaplimg|microsoft|live|office|azure|twitter|x|twimg|cloudflare|facebook|instagram|whatsapp|netflix|amazon|amazonaws|wikipedia)\.(com|org|net)$/i, 'US'],
@@ -90,7 +96,7 @@ export async function resolveHost(target) {
 
   for (const [pattern, code] of KNOWN_DOMAINS) {
     if (pattern.test(clean)) {
-      domainCache.set(clean, code);
+      cacheDomain(clean, code);
       return code;
     }
   }
@@ -105,13 +111,13 @@ export async function resolveHost(target) {
       if (ip && isIP(ip)) {
         const country = lookupCountry(ip);
         if (country) {
-          domainCache.set(clean, country);
+          cacheDomain(clean, country);
           return country;
         }
       }
     }
   } catch {}
 
-  domainCache.set(clean, null);
+  cacheDomain(clean, null);
   return null;
 }

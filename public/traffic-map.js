@@ -48,6 +48,20 @@
   let lastGlobeH = 0;
   let hoverRafId = null;
 
+  // 省电冻结：持续无新流量且无交互超过 45s 时冻结全部地图动画（globe rAF 循环停止、
+  // 2D SMIL 暂停、渲染管线跳过），空闲 GPU 占用趋近于零；任何数据/指针/键盘活动即时解冻。
+  const IDLE_FREEZE_MS = 45000;
+  let lastActivityTs = Date.now();
+  let idleFrozen = false;
+  function markActivity() {
+    lastActivityTs = Date.now();
+    if (idleFrozen) {
+      idleFrozen = false;
+      if (globe) startFpsMonitor();
+      render();
+    }
+  }
+
   // 挤出高度（polygonAltitude）会重建几何体，代价高：节流到 1.2s 一次
   let altitudeSig = '';
   let pendingAltitudeSig = '';
@@ -82,8 +96,18 @@
     return globeLibPromise;
   }
 
+  let fpsMonitorRunning = false;
   function startFpsMonitor() {
+    if (fpsMonitorRunning) return;
+    fpsMonitorRunning = true;
     const step = (now) => {
+      // 冻结/隐藏期间渲染循环本就停止，监控随之挂起（由 markActivity 重新拉起）
+      if (idleFrozen || document.hidden || !globe) {
+        fpsMonitorRunning = false;
+        fpsFrames = 0;
+        fpsLast = 0;
+        return;
+      }
       if (!fpsLast) fpsLast = now;
       fpsFrames++;
       if (now - fpsLast >= 2000) {
@@ -836,6 +860,7 @@
         .ringMaxRadius('maxR')
         .ringPropagationSpeed('speed')
         .ringRepeatPeriod('period')
+        .ringResolution(24)
         // 3D HTML Markers
         .htmlElementsData([])
         .htmlLat('lat')
@@ -997,6 +1022,7 @@
   const SVG_NS = 'http://www.w3.org/2000/svg';
   const prevHubCounts = new Map();
   const burstCooldown = new Map();
+  let hubItemsCache = new Map(); // hub.id -> 该枢纽的连接列表（弹窗用，随渲染管线重建）
   let activeBursts = 0;
 
   function detectHubArrivals(hubCounts, mode) {
@@ -1105,11 +1131,20 @@
       }
       return;
     }
+    // 省电冻结判定：放在最前，让后续的 svg/globe 暂停逻辑统一消费 idleFrozen。
+    // force render（clear/定位/初始加载）语义上视为活跃：强制解除冻结并刷新活跃时间。
+    if (force) {
+      idleFrozen = false;
+      lastActivityTs = Date.now();
+    } else if (Date.now() - lastActivityTs > IDLE_FREEZE_MS) {
+      idleFrozen = true;
+    }
     const state = getState();
+    $('view-map').classList.toggle('idle-frozen', idleFrozen);
     $('view-map').classList.toggle('is-paused', state.paused);
     const svg = $('map-svg');
     if (svg) {
-      if (state.paused) {
+      if (state.paused || idleFrozen) {
         try { svg.pauseAnimations(); } catch {}
       } else {
         try { svg.unpauseAnimations(); } catch {}
@@ -1119,7 +1154,7 @@
     // 3D Globe animation pause/resume
     if (globe) {
       try {
-        const isGlobeActive = !state.paused && state.activeView === 'map' && currentProjection === '3d';
+        const isGlobeActive = !state.paused && !idleFrozen && state.activeView === 'map' && currentProjection === '3d';
         if (!isGlobeActive) {
           globe.pauseAnimation();
           const controls = globe.controls();
@@ -1133,6 +1168,7 @@
     }
 
     if (state.activeView !== 'map' || (state.paused && !force)) return;
+    if (idleFrozen) return; // 冻结期间跳过整条渲染管线
     if (!world || (has3DSupport && !countriesGeoJson)) {
       if (!loading) loading = loadWorld().then(render).catch(error => { geoError = error.message; $('map-message').textContent = geoError; $('map-retry').hidden = false; });
       return;
@@ -1204,7 +1240,7 @@
     let closedCount = 0;
     let itemsSig = '';
     for (const x of displayItems) {
-      itemsSig += x.id + (x.closed ? 'c' : 'a') + (x.host || '') + (x.remoteIP || '') + ';';
+      itemsSig += x.id + (x.closed ? 'c' : 'a') + (x.host || '') + (x.remoteIP || '') + (x.node || '') + (x.ua || '') + ';';
       if (x.closed) closedCount++;
     }
     const renderSig = `${mode}|${timeWindow}|${$('map-node').value}|${selectedHub}|${selectedApp}|${searchQuery}|${currentOriginCode}|${locations.size}|${closedCount}|${itemsSig}`;
@@ -1485,6 +1521,8 @@
     lastMaxCount = maxCount;
     lastTotalLocated = located;
     detectHubArrivals(hubCounts, mode);
+    hubItemsCache = new Map();
+    for (const [id, entry] of hubCounts) hubItemsCache.set(id, entry.items);
     $('map-count').textContent = items.length;
     $('map-located').textContent = located;
     $('map-unknown').textContent = Math.max(0, items.length - located);
@@ -1663,7 +1701,9 @@
     // 3D Globe Sync (Optimized 60FPS with Strict Dirty-Checking)
     if (globe) {
       const globeRings = [];
-      for (const { hub, count, items: hItems } of hubCounts.values()) {
+      // 波纹环每次扩散都要分配几何体：只保留流量最高的前 8 个枢纽 + 本机
+      const ringHubs = [...hubCounts.values()].sort((a, b) => b.count - a.count).slice(0, 8);
+      for (const { hub, count, items: hItems } of ringHubs) {
         const heatRatio = count / maxCount;
         const isTopHot = heatRatio >= 0.75 && count >= 3;
         const isHot = (heatRatio >= 0.38 || count >= 5) && count > 1;
@@ -1873,7 +1913,6 @@
   globalThis.TrafficMap = {
     init(stateReader, filteredReader, detail) {
       getState = stateReader; readFiltered = filteredReader; openDetail = detail;
-
       // Pan & Zoom Event Listeners (2D Flat Canvas)
       const stage = $('map-stage-container');
       if (stage) {
@@ -2016,8 +2055,8 @@
           if (target) {
             const hId = target.dataset.hub;
             const hub = TECH_HUBS[hId] || (world?.countries?.[hId] ? { id: hId, name: world.countries[hId].name, city: world.countries[hId].name, flag: getFlag(hId) } : null);
-            const state = getState();
-            const hItems = [...state.connections.values()].filter(x => resolveHub(x, $('map-mode')?.value || 'target')?.id === hId);
+            // O(1) 缓存查找：hubItemsCache 随渲染管线重建，替代每次 mousemove 的全量扫描
+            const hItems = hubItemsCache.get(hId) || [];
             if (hub) showPopover(e, hub, hItems, lastTotalLocated, lastMaxCount);
           }
         });
@@ -2059,11 +2098,16 @@
       $('map-rotate-toggle')?.classList.toggle('active', autoRotateEnabled);
 
       // 窗口恢复可见时立即恢复渲染（隐藏期间定时器被系统节流到分钟级）
-      document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) markActivity(); });
+
+      // 省电冻结的活跃信号：任何指针/键盘/滚轮活动都会解冻（pointerdown 挂 window，
+      // 否则 stage 外的点击——dock、按钮、命令面板——不会解除冻结）
+      ['pointerdown', 'wheel', 'pointermove', 'keydown'].forEach(evt => window.addEventListener(evt, markActivity, { passive: true }));
 
       setInterval(render, 2000);
     },
     render,
+    markActivity,
     clear() {
       selectedHub = '';
       selectedApp = '';

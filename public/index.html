@@ -2062,6 +2062,7 @@
 
       // 视图切换：地图为常驻舞台，列表/日志/统计为 HUD 悬浮层
       function setView(view) {
+        TrafficMap.markActivity?.(); // 任何视图切换都视为用户活跃（解除地图省电冻结）
         state.activeView = view;
         document.querySelectorAll('.dock-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-view') === view));
         $('layer-table').classList.toggle('open', view === 'table');
@@ -2202,6 +2203,7 @@
       function parseLog(message, timestamp) {
         state.eventCount++;
         state.recentEventsWindow.push(Date.now());
+        TrafficMap.markActivity?.(); // 新数据到达：解除地图省电冻结
         const item = ConnectionLog.apply(state.connections, message, timestamp);
         if (state.eventCount % 40 === 0) pruneConnections();
         appendTerminalLine(timestamp, message, item);
@@ -2382,9 +2384,17 @@
         return items;
       }
 
+      // 表格内容签名：显示字段没变时跳过 120 行 innerHTML 全量重建
+      let lastTableSig = '';
       function renderTable() {
         const items = filteredConnections().slice(0, 120);
         const tbody = $('connection-rows');
+        let tableSig = `${state.filterRoute}|${state.filterStatus}|${state.filterGroup}|${state.searchQuery}|${state.selectedId || ''}|`;
+        for (const x of items) {
+          tableSig += `${x.id}:${x.closed ? 1 : 0}:${x.cost ?? '-'}:${x.route || ''}:${x.host || ''}:${x.rule || ''}:${x.node || ''}:${x.group || ''}:${x.server || ''}:${x.proto || ''};`;
+        }
+        if (tableSig === lastTableSig) return;
+        lastTableSig = tableSig;
 
         if (!items.length) {
           tbody.innerHTML = `

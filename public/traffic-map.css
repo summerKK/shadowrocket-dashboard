@@ -227,24 +227,25 @@ body.view-is-map #connection-toolbar {
   filter:drop-shadow(0 0 16px rgba(16,185,129,0.85)) drop-shadow(0 0 4px #10b981);
 }
 
-/* 3. Top traffic hotspot country: Blazing Bright Neon Glow with Breathing Pulsation! */
+/* 3. Top traffic hotspot country: single-layer neon glow with breathing pulsation
+      （双层 drop-shadow 的逐帧重绘成本翻倍，视觉差异很小） */
 .map-country.top-hot-traffic {
   fill:#10b981;
   fill-opacity:.86;
   stroke:#a7f3d0;
   stroke-width:2;
   stroke-opacity:1;
-  filter:drop-shadow(0 0 28px rgba(16,185,129,1)) drop-shadow(0 0 8px #ffffff);
+  filter:drop-shadow(0 0 24px rgba(16,185,129,0.95));
   animation:map-country-super-glow 2.2s ease-in-out infinite alternate;
 }
 @keyframes map-country-super-glow {
   0% {
     fill-opacity:.76;
-    filter:drop-shadow(0 0 16px rgba(16,185,129,0.85)) drop-shadow(0 0 5px #10b981);
+    filter:drop-shadow(0 0 14px rgba(16,185,129,0.85));
   }
   100% {
     fill-opacity:.96;
-    filter:drop-shadow(0 0 38px rgba(52,211,153,1)) drop-shadow(0 0 12px #ffffff);
+    filter:drop-shadow(0 0 30px rgba(52,211,153,1));
   }
 }
 
@@ -268,6 +269,11 @@ body.view-is-map #connection-toolbar {
 }
 
 .map-grid { stroke:var(--text-muted); stroke-opacity:.08; stroke-width:1; }
+
+/* 省电冻结：停掉 2D SVG 的全部 CSS 动画（SMIL 已由 pauseAnimations 停止） */
+#view-map.idle-frozen .map-svg * {
+  animation-play-state: paused !important;
+}
 
 :fullscreen .map-card, :-webkit-full-screen .map-card {
   border-radius:0;
@@ -375,7 +381,7 @@ body.view-is-map #connection-toolbar {
 }
 .map-arc-stream.hot {
   stroke-dasharray:180 820;
-  filter:drop-shadow(0 0 8px currentColor) drop-shadow(0 0 16px currentColor);
+  filter:drop-shadow(0 0 8px currentColor);
   opacity:1;
 }
 @keyframes map-stream-flow {
@@ -388,10 +394,10 @@ body.view-is-map #connection-toolbar {
 /* Flying Photon Particles */
 .map-particle {
   pointer-events:none;
-  filter:drop-shadow(0 0 6px #ffffff) drop-shadow(0 0 10px currentColor);
+  filter:drop-shadow(0 0 7px currentColor);
 }
 .map-particle.hot {
-  filter:drop-shadow(0 0 8px #ffffff) drop-shadow(0 0 14px #f59e0b);
+  filter:drop-shadow(0 0 8px #f59e0b);
 }
 
 /* Radiant Heat Aura for Busy Hubs */
@@ -682,9 +688,9 @@ body.view-is-map #connection-toolbar {
   100% { transform:scale(1.4); box-shadow:0 0 22px #ef4444, 0 0 30px #f59e0b; }
 }
 .globe-marker-pill {
-  background:rgba(15,23,42,0.92);
-  backdrop-filter:blur(10px);
-  -webkit-backdrop-filter:blur(10px);
+  /* 不用 backdrop-filter：标记随地球每帧重投影，背后模糊区域会被逐帧重新合成，
+     十几个 pill 就是持续性的 GPU 合成负担；实色底 + 描边的观感几乎一致 */
+  background:rgba(13, 20, 38, 0.96);
   border:1px solid rgba(56,189,248,0.4);
   border-radius:12px;
   padding:2.5px 8px;
