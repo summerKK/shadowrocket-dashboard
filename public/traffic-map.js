@@ -8,12 +8,14 @@
   // three.js 的时钟按真实时间差推进，跳帧后动画速度不变，只是帧率降低。
   // 注意：CSS/SMIL 动画不走 rAF，不受此影响（SVG 属性动画走主线程重绘，由省电冻结另行覆盖）。
   const nativeRaf = window.requestAnimationFrame.bind(window);
-  const FRAME_MIN_INTERVAL = 1000 / 40;
+  // 动态帧率档位：活跃（新流量/交互）40fps → 流量安静 12s 后 20fps → 45s 无活动冻结。
+  // 渲染成本 ≈ 场景复杂度 × 帧率，安静期降档直接砍半 GPU/CPU。
+  let frameIntervalMs = 1000 / 40;
   const lastFrameByCb = new WeakMap();
   window.requestAnimationFrame = (cb) => {
     const attempt = (now) => {
       const last = lastFrameByCb.get(cb) || 0;
-      if (now - last >= FRAME_MIN_INTERVAL) {
+      if (now - last >= frameIntervalMs) {
         lastFrameByCb.set(cb, now);
         cb(now);
       } else {
@@ -55,6 +57,7 @@
   let idleFrozen = false;
   function markActivity() {
     lastActivityTs = Date.now();
+    frameIntervalMs = 1000 / 40; // 任何活动立即回到活跃档
     if (idleFrozen) {
       idleFrozen = false;
       if (globe) startFpsMonitor();
@@ -1139,6 +1142,10 @@
     } else if (Date.now() - lastActivityTs > IDLE_FREEZE_MS) {
       idleFrozen = true;
     }
+    // 帧率分档：安静期降到 20fps。安静 = 12s 无新流量/交互，或当前 2s 窗口内事件稀疏
+    // （持续低速心跳的流量也降档——渲染成本 ≈ 场景 × 帧率，与事件量无关）
+    const quiet = (Date.now() - lastActivityTs > 12000) || getState().recentEventsWindow.length < 3;
+    frameIntervalMs = quiet ? 1000 / 20 : 1000 / 40;
     const state = getState();
     $('view-map').classList.toggle('idle-frozen', idleFrozen);
     $('view-map').classList.toggle('is-paused', state.paused);
