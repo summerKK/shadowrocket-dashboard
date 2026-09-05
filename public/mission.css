@@ -644,3 +644,22 @@ tr.table-row.selected td:first-child { box-shadow: inset 2px 0 0 var(--accent-in
   font-size: 11px;
   color: var(--text-muted);
 }
+
+/* ---------- 3D 星空背景（WebGL 画布之下，被地球遮挡） ---------- */
+.mc-starfield {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  animation: mc-twinkle 7s ease-in-out infinite alternate;
+}
+.mc-starfield.slow { animation-duration: 11s; animation-delay: -3.5s; }
+@keyframes mc-twinkle {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mc-starfield { animation: none; opacity: 0.8; }
+}

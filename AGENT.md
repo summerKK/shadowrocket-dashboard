@@ -55,6 +55,11 @@ shadowrocket-dashboard/
   - 3D/2D 地图为常驻全屏舞台；连接列表 / 原始日志 / 流量统计为玻璃 HUD 悬浮层，随时呼出。
   - 左 HUD 板为实时连接流水（点击开详情），右 HUD 板为应用分组与地图搜索；底部命令栏含 dock、键位提示与上游状态胶囊。
   - 快捷键：`1-4` 切换视图层、`⌘K` 命令面板、`J/K` 表格行导航、`Enter` 打开详情、`Esc` 返回舞台；样式骨架集中在 `mission.css`（终端风 tokens：直角、等宽、ANSI 徽章、HUD 角标）。
+- **3D 地球性能预算**：
+  - globe.gl（1.8MB）按需加载：首次进入 3D 模式才拉取，失败自动回退 2D。
+  - 多边形过渡动画关闭（`polygonsTransitionDuration(0)`，避免逐帧重建 177 个几何体）；挤出高度更新节流 1.2s；颜色即时更新。
+  - 像素比上限 1.5 且随帧率自适应降档至 1.0；`countries.geojson` 已预简化（scripts/simplify-geojson.mjs）。
+  - 视觉：双层 canvas 星空微闪、深海蓝球体材质（微高光）、冷环境光 + 暖主光（经 `scene().traverse` 原位修改，不依赖 THREE 命名空间）。
 - **主题系统**：基于 CSS 变量 `[data-theme="..."]` 实现 5 套主题（`aurora`、`tokyo-night`、`cyberpunk`、`oled`、`nordic-light`），按 <kbd>T</kbd> 快捷轮换并持久化至 `localStorage`；每套主题带独立 HUD 框线色（`--mc-frame`）。
 - **智能服务与指纹库 (`DOMAIN_APP_MAP`)**：
   - 即使在未开启 MITM 的纯 TCP/TLS 流量下，也能根据目标域名/规则自动识别为 30+ 常见应用徽章（如 ChatGPT, Claude, GitHub, Telegram, YouTube 等）。
