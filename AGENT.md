@@ -20,7 +20,12 @@ shadowrocket-dashboard/
 ├── docs/
 │   └── images/                # README 示例图例与 Shadowrocket 设置说明截图
 ├── public/
-│   └── index.html             # 单页响应式前端（5款主题、表格/终端/图表三视图、指纹库、详情抽屉）
+│   ├── index.html             # 单页响应式前端（5款主题、表格/终端/图表三视图、指纹库、详情抽屉）
+│   ├── mission.css            # Mission Control 指挥舱骨架（ticker 状态带、HUD 面板、命令栏、命令面板、终端风 tokens）
+│   ├── traffic-map.css        # 3D/2D 流量地图样式（Little Snitch 风格）
+│   ├── traffic-map.js         # 3D Polyglobe + 2D SVG 拓扑渲染引擎（枢纽、弧线、光子流）
+│   ├── connection-log.js      # Shadowrocket 日志解析器（前后端共享、node:test 覆盖）
+│   └── map/                   # 离线地图资源（world.json / countries.geojson / globe.gl.min.js）
 ├── electron-main.mjs          # macOS 原生 Electron 窗口入口（沉浸式磨砂窗口、生命周期、内置服务管理）
 ├── server.mjs                 # 轻量 Node.js 后端（零第三方运行时依赖，SSE 广播、探针与静态托管）
 ├── package.json               # 依赖管理、构建配置与打包元数据
@@ -45,7 +50,12 @@ shadowrocket-dashboard/
   - 采用 `AbortController` 并在断线后以 1 秒为间隔积极重试，确保 Shadowrocket 重启后秒级恢复。
 
 ### 2.2 前端界面 (`public/index.html`)
-- **主题系统**：基于 CSS 变量 `[data-theme="..."]` 实现 5 套主题（`aurora`、`tokyo-night`、`cyberpunk`、`oled`、`nordic-light`），按 <kbd>T</kbd> 快捷轮换并持久化至 `localStorage`。
+- **Mission Control 指挥舱布局**：
+  - 顶部 ticker 状态带替代统计卡（实时指标 + 事件速率字符 sparkline，每秒采样）。
+  - 3D/2D 地图为常驻全屏舞台；连接列表 / 原始日志 / 流量统计为玻璃 HUD 悬浮层，随时呼出。
+  - 左 HUD 板为实时连接流水（点击开详情），右 HUD 板为应用分组与地图搜索；底部命令栏含 dock、键位提示与上游状态胶囊。
+  - 快捷键：`1-4` 切换视图层、`⌘K` 命令面板、`J/K` 表格行导航、`Enter` 打开详情、`Esc` 返回舞台；样式骨架集中在 `mission.css`（终端风 tokens：直角、等宽、ANSI 徽章、HUD 角标）。
+- **主题系统**：基于 CSS 变量 `[data-theme="..."]` 实现 5 套主题（`aurora`、`tokyo-night`、`cyberpunk`、`oled`、`nordic-light`），按 <kbd>T</kbd> 快捷轮换并持久化至 `localStorage`；每套主题带独立 HUD 框线色（`--mc-frame`）。
 - **智能服务与指纹库 (`DOMAIN_APP_MAP`)**：
   - 即使在未开启 MITM 的纯 TCP/TLS 流量下，也能根据目标域名/规则自动识别为 30+ 常见应用徽章（如 ChatGPT, Claude, GitHub, Telegram, YouTube 等）。
 - **macOS 安全边距检测**：
