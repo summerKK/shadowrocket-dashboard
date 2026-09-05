@@ -1400,6 +1400,7 @@
       }
     </style>
       <link rel="stylesheet" href="/traffic-map.css">
+      <link rel="stylesheet" href="/mission.css">
   </head>
   <body class="view-is-map">
     <!-- Top Header -->
@@ -1428,32 +1429,6 @@
       </div>
 
       <div class="header-right">
-        <!-- View Tabs -->
-        <nav class="nav-tabs" aria-label="视图切换">
-          <button class="nav-tab active" data-view="map">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
-            🌍 3D 流量地球
-          </button>
-          <button class="nav-tab" data-view="table">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18"/></svg>
-            连接列表
-          </button>
-          <button class="nav-tab" data-view="stream">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-            原始日志
-          </button>
-          <button class="nav-tab" data-view="analytics">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-            流量统计
-          </button>
-        </nav>
-
-        <!-- Upstream Status Indicator -->
-        <div class="status-pill" id="status-container" title="点击查看或修改 Shadowrocket API 端点 (S)">
-          <span id="dot" class="status-dot"></span>
-          <span id="status-text">连接中…</span>
-        </div>
-
         <!-- Theme Switcher -->
         <div class="theme-dropdown-wrapper">
           <button id="btn-theme" class="btn-theme-selector" title="切换界面皮肤主题 (T)">
@@ -1482,75 +1457,65 @@
       </div>
     </header>
 
-    <!-- Main Content Area -->
-    <main class="container">
-      <!-- Metric Cards -->
-      <section class="stats-grid">
-        <div class="stat-card card-total">
-          <div class="stat-header">
-            <span class="stat-label">当前连接</span>
-            <div class="stat-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
-            </div>
-          </div>
-          <div class="stat-value-group">
-            <span id="stat-total" class="stat-value">0</span>
-            <span id="stat-active-badge" class="stat-sub">0 活跃</span>
-          </div>
-        </div>
+    <!-- Ticker · 实时状态带 -->
+    <div class="ticker-bar" id="ticker-bar" role="status" aria-label="实时指标">
+      <div class="ticker-item">
+        <span class="ticker-label">EVENTS</span>
+        <span id="ticker-spark" class="ticker-spark">▁▁▁▁▁▁▁▁</span>
+        <span id="stat-event-rate" class="ticker-sub">0 msg/s</span>
+      </div>
+      <span class="ticker-sep">┊</span>
+      <div class="ticker-item">
+        <span class="ticker-label">CONN</span>
+        <span id="stat-total" class="ticker-value">0</span>
+        <span id="stat-active-badge" class="ticker-sub">0 活跃</span>
+      </div>
+      <span class="ticker-sep">┊</span>
+      <div class="ticker-item t-proxy">
+        <span class="ticker-tag">[PROXY]</span>
+        <span id="stat-proxy" class="ticker-value">0</span>
+        <span id="stat-proxy-pct" class="ticker-sub">0%</span>
+      </div>
+      <span class="ticker-sep">┊</span>
+      <div class="ticker-item t-direct">
+        <span class="ticker-tag">[DIRECT]</span>
+        <span id="stat-direct" class="ticker-value">0</span>
+        <span id="stat-direct-pct" class="ticker-sub">0%</span>
+      </div>
+      <span class="ticker-sep">┊</span>
+      <div class="ticker-item t-reject">
+        <span class="ticker-tag">[REJECT]</span>
+        <span id="stat-reject" class="ticker-value">0</span>
+        <span id="stat-reject-pct" class="ticker-sub">0%</span>
+      </div>
+      <span class="ticker-sep">┊</span>
+      <div class="ticker-item">
+        <span class="ticker-label">TOTAL</span>
+        <span id="stat-events" class="ticker-value">0</span>
+      </div>
+    </div>
 
-        <div class="stat-card card-proxy">
-          <div class="stat-header">
-            <span class="stat-label">PROXY 代理</span>
-            <div class="stat-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </div>
-          </div>
-          <div class="stat-value-group">
-            <span id="stat-proxy" class="stat-value">0</span>
-            <span id="stat-proxy-pct" class="stat-sub">0%</span>
-          </div>
+    <!-- Main Content Area: Mission Control Stage -->
+    <main class="stage-layout" id="stage-layout">
+      <!-- 左 HUD · 实时连接流水 -->
+      <aside class="hud-panel hud-left mc-frame" id="hud-left">
+        <div class="hud-panel-head">
+          <span class="hud-panel-title"><i class="tick">▌</i>LIVE · 实时流水</span>
+          <span class="hud-panel-count" id="live-feed-count">Σ 0</span>
         </div>
+        <div class="hud-panel-body">
+          <div id="live-feed" class="live-feed"><div class="feed-empty">◈ 等待日志流入…</div></div>
+        </div>
+      </aside>
 
-        <div class="stat-card card-direct">
-          <div class="stat-header">
-            <span class="stat-label">DIRECT 直连</span>
-            <div class="stat-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-            </div>
+      <!-- HUD 悬浮层 · 连接列表 -->
+      <div id="layer-table" class="hud-layer">
+        <div class="hud-layer-frame mc-frame">
+          <div class="hud-layer-head">
+            <span><i class="tick">▌</i>CONNECTIONS · 连接列表</span>
+            <button class="hud-layer-close" data-close-view="table" title="返回舞台 (Esc)">✕</button>
           </div>
-          <div class="stat-value-group">
-            <span id="stat-direct" class="stat-value">0</span>
-            <span id="stat-direct-pct" class="stat-sub">0%</span>
-          </div>
-        </div>
-
-        <div class="stat-card card-reject">
-          <div class="stat-header">
-            <span class="stat-label">REJECT 拦截</span>
-            <div class="stat-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
-            </div>
-          </div>
-          <div class="stat-value-group">
-            <span id="stat-reject" class="stat-value">0</span>
-            <span id="stat-reject-pct" class="stat-sub">0%</span>
-          </div>
-        </div>
-
-        <div class="stat-card card-events">
-          <div class="stat-header">
-            <span class="stat-label">日志事件流</span>
-            <div class="stat-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-            </div>
-          </div>
-          <div class="stat-value-group">
-            <span id="stat-events" class="stat-value">0</span>
-            <span id="stat-event-rate" class="stat-sub">0 msg/s</span>
-          </div>
-        </div>
-      </section>
+          <div class="hud-layer-body">
 
       <!-- View 1: Table View -->
         <!-- Control Toolbar -->
@@ -1602,7 +1567,7 @@
           </div>
         </div>
 
-      <section id="view-table" class="tab-content" style="display:none;">
+      <section id="view-table" class="tab-content">
         <div class="hint-banner">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
           HTTPS 流量在未配置 MITM 解密证书时只显示域名/主机；开启 MITM 或 HTTP 协议可解析完整请求路径。点击任意行可查看详细握手与规则信息。
@@ -1636,8 +1601,18 @@
           </div>
         </div>
       </section>
+          </div><!-- /hud-layer-body -->
+        </div><!-- /hud-layer-frame -->
+      </div><!-- /layer-table -->
 
-      <!-- View 2: Live Stream Terminal View -->
+      <!-- HUD 悬浮层 · 原始日志 -->
+      <div id="layer-stream" class="hud-layer">
+        <div class="hud-layer-frame mc-frame">
+          <div class="hud-layer-head">
+            <span><i class="tick">▌</i>STREAM · 原始日志</span>
+            <button class="hud-layer-close" data-close-view="stream" title="返回舞台 (Esc)">✕</button>
+          </div>
+          <div class="hud-layer-body">
       <section id="view-stream" class="stream-view">
         <div class="terminal-container">
           <div class="terminal-header">
@@ -1657,9 +1632,14 @@
           <div id="terminal-body" class="terminal-body"></div>
         </div>
       </section>
+          </div><!-- /hud-layer-body -->
+        </div><!-- /hud-layer-frame -->
+      </div><!-- /layer-stream -->
 
-      <!-- View 3: Traffic Analytics -->
-      <section id="view-map" class="traffic-map" aria-label="实时连接地图" style="display:block;">
+      <!-- 中央舞台 · 常驻地图 -->
+      <section id="view-map" class="traffic-map stage-center" aria-label="实时连接地图">
+        <button class="stage-edge stage-edge-left" id="hud-left-toggle" title="收起/展开 实时流水">◂</button>
+        <button class="stage-edge stage-edge-right" id="hud-right-toggle" title="收起/展开 应用分组">▸</button>
         <div id="map-card" class="map-card">
           <div class="map-heading">
             <div class="map-title-row">
@@ -1749,31 +1729,35 @@
               </div>
             </div>
 
-            <!-- Bottom Section: Requested Websites & App Grouping Cards -->
-            <div class="map-bottom-panel">
-              <div class="map-bottom-header">
-                <div class="map-bottom-title-wrap">
-                  <div class="map-bottom-title">
-                    <span style="font-size:16px;">🌐</span>
-                    <h3>请求网站与应用服务分组</h3>
-                  </div>
-                  <span id="map-list-title" class="map-bottom-meta">应用与连接分组</span>
-                </div>
-                <div class="map-bottom-actions">
-                  <button id="map-selection" class="map-button map-selected">全部服务 · 清除筛选</button>
-                  <div class="map-search-wrap">
-                    <input type="text" id="map-search" class="map-search-input" placeholder="🔍 搜索请求域名、应用、IP或机房…" />
-                  </div>
-                </div>
-              </div>
-              <div id="map-connections" class="map-connections-grid"></div>
-            </div>
           </div>
           <div id="map-message" class="map-message" role="status" hidden></div>
           <button id="map-retry" class="map-button" hidden>重试加载</button>
         </div>
       </section>
 
+      <!-- 右 HUD · 应用分组 -->
+      <aside class="hud-panel hud-right mc-frame" id="hud-right">
+        <div class="hud-panel-head">
+          <span class="hud-panel-title"><i class="tick">▌</i>GROUPS · 应用分组</span>
+          <span id="map-list-title" class="hud-panel-count">0 条</span>
+        </div>
+        <div class="hud-panel-toolbar">
+          <input type="text" id="map-search" class="map-search-input" placeholder="搜索域名 / 应用 / IP…" />
+          <button id="map-selection" class="map-button map-selected" title="清除筛选">✕</button>
+        </div>
+        <div class="hud-panel-body hud-panel-body-groups">
+          <div id="map-connections" class="map-connections-grid"></div>
+        </div>
+      </aside>
+
+      <!-- HUD 悬浮层 · 流量统计 -->
+      <div id="layer-analytics" class="hud-layer">
+        <div class="hud-layer-frame mc-frame">
+          <div class="hud-layer-head">
+            <span><i class="tick">▌</i>ANALYTICS · 流量统计</span>
+            <button class="hud-layer-close" data-close-view="analytics" title="返回舞台 (Esc)">✕</button>
+          </div>
+          <div class="hud-layer-body">
       <section id="view-analytics" class="analytics-view">
         <div class="analytics-grid">
           <!-- Top Domains -->
@@ -1821,7 +1805,30 @@
           </div>
         </div>
       </section>
+          </div><!-- /hud-layer-body -->
+        </div><!-- /hud-layer-frame -->
+      </div><!-- /layer-analytics -->
     </main>
+
+    <!-- Command Bar · 底部命令栏 -->
+    <footer class="cmdbar" id="cmdbar">
+      <nav class="dock" aria-label="视图切换">
+        <button class="dock-btn active" data-view="map" title="舞台 (1)"><span class="key">1</span>🌍 舞台</button>
+        <button class="dock-btn" data-view="table" title="连接列表 (2)"><span class="key">2</span>▤ 列表</button>
+        <button class="dock-btn" data-view="stream" title="原始日志 (3)"><span class="key">3</span>▷ 日志</button>
+        <button class="dock-btn" data-view="analytics" title="流量统计 (4)"><span class="key">4</span>▥ 统计</button>
+      </nav>
+      <div class="cmdbar-hints">
+        <span><kbd>⌘K</kbd> 搜索</span>
+        <span><kbd>Space</kbd> 暂停</span>
+        <span><kbd>C</kbd> 清空</span>
+        <span><kbd>Esc</kbd> 返回舞台</span>
+      </div>
+      <div class="status-pill" id="status-container" title="点击查看或修改 Shadowrocket API 端点 (S)">
+        <span id="dot" class="status-dot"></span>
+        <span id="status-text">连接中…</span>
+      </div>
+    </footer>
 
     <!-- Detail Drawer -->
     <div id="drawer-overlay" class="drawer-overlay">
@@ -1966,6 +1973,7 @@
         maxConnections: 1000,
         eventCount: 0,
         recentEventsWindow: [],
+        rateSamples: [],
         paused: false,
         activeView: 'map',
         filterRoute: 'ALL',
@@ -1999,7 +2007,63 @@
         }
       }
 
+      // 左 HUD · 实时连接流水
+      function renderLiveFeed() {
+        const el = $('live-feed');
+        if (!el) return;
+        const items = [...state.connections.values()].sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0)).slice(0, 30);
+        const count = $('live-feed-count');
+        if (count) count.textContent = `Σ ${state.connections.size}`;
+        el.innerHTML = items.map(x => {
+          const route = x.route || '···';
+          const cost = x.cost != null && x.cost < 10000 ? `${Math.round(x.cost)}ms` : '──';
+          return `
+            <div class="feed-item${x.closed ? ' closed' : ''}" data-conn="${esc(x.id)}">
+              <span class="feed-route f-${esc(route.toLowerCase())}">${esc(route)}</span>
+              <span class="feed-host" title="${esc(x.host || '')}">${esc(x.host || '─')}</span>
+              <span class="feed-cost">${cost}</span>
+            </div>`;
+        }).join('') || '<div class="feed-empty">◈ 等待日志流入…</div>';
+      }
+
+      // Ticker · 每秒采样事件速率，生成字符 sparkline
+      function startRateSampler() {
+        let last = 0;
+        const blocks = '▁▂▃▄▅▆▇█';
+        setInterval(() => {
+          state.rateSamples.push(state.eventCount - last);
+          last = state.eventCount;
+          if (state.rateSamples.length > 20) state.rateSamples.shift();
+          const spark = $('ticker-spark');
+          if (!spark) return;
+          const max = Math.max(...state.rateSamples, 1);
+          spark.textContent = state.rateSamples.map(v => blocks[Math.min(7, Math.round((v / max) * 7))]).join('');
+        }, 1000);
+      }
+
+      // 视图切换：地图为常驻舞台，列表/日志/统计为 HUD 悬浮层
+      function setView(view) {
+        state.activeView = view;
+        document.querySelectorAll('.dock-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-view') === view));
+        $('layer-table').classList.toggle('open', view === 'table');
+        $('layer-stream').classList.toggle('open', view === 'stream');
+        $('layer-analytics').classList.toggle('open', view === 'analytics');
+        $('connection-toolbar').style.display = view === 'table' ? 'flex' : 'none';
+        document.body.classList.toggle('view-is-map', view === 'map');
+        TrafficMap.render();
+        if (view === 'table') flushRender();
+        if (view === 'stream') {
+          flushTerminalBuffer();
+          if ($('term-autoscroll').checked) {
+            const body = $('terminal-body');
+            body.scrollTop = body.scrollHeight;
+          }
+        }
+        if (view === 'analytics') renderAnalytics();
+      }
+
       function flushRender() {
+        renderLiveFeed();
         updateStats();
         if (state.activeView === 'table') {
           renderTable();
@@ -2520,34 +2584,22 @@
 
       // Event Listeners Setup
       function initEvents() {
-        // Nav tab switching
-        document.querySelectorAll('.nav-tab').forEach(tab => {
-          tab.addEventListener('click', () => {
-            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            const view = tab.getAttribute('data-view');
-            state.activeView = view;
-            $('connection-toolbar').style.display = view === 'table' ? 'flex' : 'none';
-
-            $('view-table').style.display = view === 'table' ? 'block' : 'none';
-            $('view-stream').style.display = view === 'stream' ? 'block' : 'none';
-            $('view-analytics').style.display = view === 'analytics' ? 'block' : 'none';
-            $('view-map').style.display = view === 'map' ? 'block' : 'none';
-            document.body.classList.toggle('view-is-map', view === 'map');
-            if (view === 'map') {
-              TrafficMap.render();
-              setTimeout(() => TrafficMap.render(), 60);
-            } else {
-              TrafficMap.render();
-            }
-
-            if (view === 'table') flushRender();
-            if (view === 'analytics') renderAnalytics();
-            if (view === 'stream' && $('term-autoscroll').checked) {
-              const body = $('terminal-body');
-              body.scrollTop = body.scrollHeight;
-            }
-          });
+        // View switching (dock / hud layers / stage edges)
+        document.querySelectorAll('.dock-btn').forEach(btn => {
+          btn.addEventListener('click', () => setView(btn.getAttribute('data-view')));
+        });
+        document.querySelectorAll('.hud-layer-close').forEach(btn => {
+          btn.addEventListener('click', () => setView('map'));
+        });
+        $('live-feed').addEventListener('click', (e) => {
+          const item = e.target.closest('[data-conn]');
+          if (item) openDrawer(item.getAttribute('data-conn'));
+        });
+        $('hud-left-toggle').addEventListener('click', () => {
+          $('stage-layout').classList.toggle('left-collapsed');
+        });
+        $('hud-right-toggle').addEventListener('click', () => {
+          $('stage-layout').classList.toggle('right-collapsed');
         });
 
         // Search input with debounce
@@ -2669,27 +2721,33 @@
             $('help-modal').classList.remove('open');
             closeApiModal();
             $('theme-menu')?.classList.remove('show');
+            if (document.querySelector('.hud-layer.open')) setView('map');
+            return;
           }
-          if ((e.metaKey || e.ctrlKey) && e.key === 'k' || (e.key === '/' && document.activeElement.tagName !== 'INPUT')) {
+          const inEditable = e.target instanceof Element && e.target.closest('input, select, textarea, [contenteditable="true"]');
+          if (inEditable) return;
+          if (((e.metaKey || e.ctrlKey) && e.key === 'k') || e.key === '/') {
             e.preventDefault();
+            setView('table');
             $('search-input').focus();
+            return;
           }
-          if ((e.key === 's' || e.key === 'S') && document.activeElement.tagName !== 'INPUT') {
+          if (e.key === '1') { setView('map'); return; }
+          if (e.key === '2') { setView('table'); return; }
+          if (e.key === '3') { setView('stream'); return; }
+          if (e.key === '4') { setView('analytics'); return; }
+          if ((e.key === 's' || e.key === 'S') && !e.metaKey && !e.ctrlKey) {
             e.preventDefault();
             openApiModal();
-          }
-          if ((e.key === 't' || e.key === 'T') && document.activeElement.tagName !== 'INPUT') {
+          } else if ((e.key === 't' || e.key === 'T') && !e.metaKey && !e.ctrlKey) {
             e.preventDefault();
             cycleTheme();
-          }
-          if (e.key === '?' && document.activeElement.tagName !== 'INPUT') {
+          } else if (e.key === '?') {
             $('help-modal').classList.toggle('open');
-          }
-          if (e.code === 'Space' && document.activeElement.tagName !== 'INPUT') {
+          } else if (e.code === 'Space') {
             e.preventDefault();
             $('btn-pause').click();
-          }
-          if (e.key === 'c' && document.activeElement.tagName !== 'INPUT') {
+          } else if ((e.key === 'c' || e.key === 'C') && !e.metaKey && !e.ctrlKey) {
             $('btn-clear').click();
           }
         });
@@ -2900,21 +2958,23 @@
       // Initializer
       window.addEventListener('DOMContentLoaded', () => {
         initEvents();
+        startRateSampler();
         if (location.search.includes('preview=1')) {
           $('dot').className = 'status-dot ok';
           $('status-text').textContent = 'Shadowrocket 已连接';
           const sampleData = [
-            { id: '4921', host: 'api.openai.com', proto: 'TCP', route: 'PROXY', rule: 'DOMAIN-SUFFIX,openai.com,AI', group: 'AI 策略组', node: '🇺🇸 vless-reality-vision-DMIT', server: '179.255.153.235', cost: 168, ua: 'OpenAI/1.24.0 (macOS)', timestamp: '14:36:52' },
-            { id: '4920', host: 'github.com', proto: 'TCP', route: 'PROXY', rule: 'DOMAIN-SUFFIX,github.com,PROXY', group: '海外加速', node: '🇯🇵 tokyo-bgp-01', server: '140.82.114.4', cost: 72, ua: 'git/2.39.0', timestamp: '14:36:50' },
-            { id: '4919', host: 'api.telegram.org', proto: 'TCP', route: 'PROXY', rule: 'IP-CIDR,149.154.160.0/20,Telegram', group: 'Telegram 专线', node: '🇸🇬 sg-iplc-direct', server: '149.154.167.220', cost: 95, ua: 'Telegram/10.9.1', timestamp: '14:36:48' },
-            { id: '4918', host: 'www.google.com', proto: 'TCP', route: 'PROXY', rule: 'DOMAIN-KEYWORD,google,PROXY', group: '节点选择', node: '🇺🇸 la-premium-02', server: '142.250.190.46', cost: 142, ua: 'Chrome/124.0.0.0', timestamp: '14:36:45' },
-            { id: '4917', host: 'gateway.discord.gg', proto: 'TCP', route: 'PROXY', rule: 'DOMAIN-SUFFIX,discord.gg,PROXY', group: '海外加速', node: '🇯🇵 tokyo-bgp-01', server: '162.159.135.234', cost: 84, ua: 'Discord/1.0.9032', timestamp: '14:36:41' },
-            { id: '4916', host: 'appleid.apple.com', proto: 'TCP', route: 'DIRECT', rule: 'DOMAIN-SUFFIX,apple.com,DIRECT', group: 'DIRECT', node: '', server: 'DIRECT', cost: 18, ua: '', timestamp: '14:36:39' },
+            { id: '4921', host: 'api.openai.com', proto: 'TCP', route: 'PROXY', rule: 'DOMAIN-SUFFIX,openai.com,AI', group: 'AI 策略组', node: '🇺🇸 vless-reality-vision-DMIT', server: '179.255.153.235', cost: 168, ua: 'OpenAI/1.24.0 (macOS)', timestamp: '14:36:52', connected: true },
+            { id: '4920', host: 'github.com', proto: 'TCP', route: 'PROXY', rule: 'DOMAIN-SUFFIX,github.com,PROXY', group: '海外加速', node: '🇯🇵 tokyo-bgp-01', server: '140.82.114.4', cost: 72, ua: 'git/2.39.0', timestamp: '14:36:50', connected: true },
+            { id: '4919', host: 'api.telegram.org', proto: 'TCP', route: 'PROXY', rule: 'IP-CIDR,149.154.160.0/20,Telegram', group: 'Telegram 专线', node: '🇸🇬 sg-iplc-direct', server: '149.154.167.220', cost: 95, ua: 'Telegram/10.9.1', timestamp: '14:36:48', connected: true },
+            { id: '4918', host: 'www.google.com', proto: 'TCP', route: 'PROXY', rule: 'DOMAIN-KEYWORD,google,PROXY', group: '节点选择', node: '🇺🇸 la-premium-02', server: '142.250.190.46', cost: 142, ua: 'Chrome/124.0.0.0', timestamp: '14:36:45', connected: true },
+            { id: '4917', host: 'gateway.discord.gg', proto: 'TCP', route: 'PROXY', rule: 'DOMAIN-SUFFIX,discord.gg,PROXY', group: '海外加速', node: '🇯🇵 tokyo-bgp-01', server: '162.159.135.234', cost: 84, ua: 'Discord/1.0.9032', timestamp: '14:36:41', connected: true },
+            { id: '4916', host: 'appleid.apple.com', proto: 'TCP', route: 'DIRECT', rule: 'DOMAIN-SUFFIX,apple.com,DIRECT', group: 'DIRECT', node: '', server: 'DIRECT', cost: 18, ua: '', timestamp: '14:36:39', connected: true },
             { id: '4915', host: 'adservice.google.com', proto: 'TCP', route: 'REJECT', rule: 'DOMAIN-KEYWORD,adservice,REJECT', group: 'REJECT', node: '', server: 'REJECT', cost: null, ua: 'Safari/17.4.1', timestamp: '14:36:35' },
-            { id: '4914', host: 'cdn.jsdelivr.net', proto: 'TCP', route: 'DIRECT', rule: 'GEOIP,CN,DIRECT', group: 'DIRECT', node: '', server: 'DIRECT', cost: 22, ua: 'Chrome/124.0.0.0', timestamp: '14:36:30' },
-            { id: '4913', host: 'registry.npmjs.org', proto: 'TCP', route: 'PROXY', rule: 'MATCH,PROXY', group: '节点选择', node: '🇭🇰 hk-iplc-01', server: '104.16.27.35', cost: 46, ua: 'npm/10.5.0', timestamp: '14:36:25' }
+            { id: '4914', host: 'cdn.jsdelivr.net', proto: 'TCP', route: 'DIRECT', rule: 'GEOIP,CN,DIRECT', group: 'DIRECT', node: '', server: 'DIRECT', cost: 22, ua: 'Chrome/124.0.0.0', timestamp: '14:36:30', connected: true },
+            { id: '4913', host: 'registry.npmjs.org', proto: 'TCP', route: 'PROXY', rule: 'MATCH,PROXY', group: '节点选择', node: '🇭🇰 hk-iplc-01', server: '104.16.27.35', cost: 46, ua: 'npm/10.5.0', timestamp: '14:36:25', connected: true }
           ];
-          sampleData.forEach(d => {
+          sampleData.forEach((d, i) => {
+            d.lastSeen = Date.now() - i * 2000;
             state.connections.set(d.id, d);
             if (d.group) state.groups.add(d.group);
           });
@@ -2922,6 +2982,7 @@
           updateStats();
           renderTable();
           renderAnalytics();
+          renderLiveFeed();
         } else {
           connectSSE();
         }
