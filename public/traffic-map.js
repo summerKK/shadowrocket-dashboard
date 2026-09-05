@@ -57,7 +57,7 @@
   let idleFrozen = false;
   function markActivity() {
     lastActivityTs = Date.now();
-    frameIntervalMs = 1000 / 40; // 任何活动立即回到活跃档
+    frameIntervalMs = 1000 / 30; // 任何活动立即回到活跃档（30fps 对慢速自转视觉无感）
     if (idleFrozen) {
       idleFrozen = false;
       if (globe) startFpsMonitor();
@@ -1145,7 +1145,7 @@
     // 帧率分档：安静期降到 20fps。安静 = 12s 无新流量/交互，或当前 2s 窗口内事件稀疏
     // （持续低速心跳的流量也降档——渲染成本 ≈ 场景 × 帧率，与事件量无关）
     const quiet = (Date.now() - lastActivityTs > 12000) || getState().recentEventsWindow.length < 3;
-    frameIntervalMs = quiet ? 1000 / 20 : 1000 / 40;
+    frameIntervalMs = quiet ? 1000 / 15 : 1000 / 30;
     const state = getState();
     $('view-map').classList.toggle('idle-frozen', idleFrozen);
     $('view-map').classList.toggle('is-paused', state.paused);
@@ -1772,7 +1772,8 @@
       }
 
       // Dirty check 1: Arcs (Dual-Layer)
-      const arcsSig = globeArcs.map(a => `${a.startLat.toFixed(1)},${a.startLng.toFixed(1)}->${a.endLat.toFixed(1)},${a.endLng.toFixed(1)}:${a.count}:${a.dashLength}:${a.dashAnimateTime}`).join('|');
+      // 计数按平方根分桶：每条新连接不再触发全部弧线几何体重建（真实流量下 80% 尖峰的来源）
+      const arcsSig = globeArcs.map(a => `${a.startLat.toFixed(1)},${a.startLng.toFixed(1)}->${a.endLat.toFixed(1)},${a.endLng.toFixed(1)}:${Math.round(Math.sqrt(a.count))}:${a.dashLength}:${Math.round(a.dashAnimateTime / 200)}`).join('|');
       if (arcsSig !== lastArcsSig) {
         globe.arcsData(globeArcs);
         lastArcsSig = arcsSig;
