@@ -42,6 +42,10 @@
   let lastRingsSig = '';
   let lastHubsSig = '';
   let lastCountrySig = '';
+  let lastFullRenderSig = '';
+  let lastGroupsSig = '';
+  let lastGlobeW = 0;
+  let lastGlobeH = 0;
   let hoverRafId = null;
 
   // 挤出高度（polygonAltitude）会重建几何体，代价高：节流到 1.2s 一次
@@ -206,7 +210,19 @@
     'CA_TOR': { id: 'CA_TOR', name: '多伦多 · 加拿大', city: 'Toronto', flag: '🇨🇦', lon: -79.38, lat: 43.65, country: 'CA' },
   };
 
+  // resolveHub 结果缓存：同一连接对象在输入字段或定位结果没变时直接复用，
+  // 避免全量渲染时对每条连接重复跑关键词匹配链
+  const hubMemo = new WeakMap();
   function resolveHub(item, role = 'target') {
+    const key = `${role}|${item.host || ''}|${item.remoteIP || ''}|${item.node || ''}|${item.ua || ''}|${locations.get(item.host) || ''}|${locations.get(item.remoteIP) || ''}`;
+    const cached = hubMemo.get(item);
+    if (cached && cached.key === key) return cached.hub;
+    const hub = resolveHubImpl(item, role);
+    hubMemo.set(item, { key, hub });
+    return hub;
+  }
+
+  function resolveHubImpl(item, role = 'target') {
     const host = (item.host || '').toLowerCase();
     const node = (item.node || '').toLowerCase();
     const remoteIP = (item.remoteIP || '');
@@ -537,7 +553,12 @@
     if (!globe || currentProjection !== '3d') return;
     const stage = $('map-stage-container');
     if (stage && stage.clientWidth > 0 && stage.clientHeight > 0) {
-      globe.width(stage.clientWidth).height(stage.clientHeight);
+      // 尺寸没变时跳过 kapsule setter（避免每次 flush / 2s 轮询的无谓 digest）
+      if (stage.clientWidth !== lastGlobeW || stage.clientHeight !== lastGlobeH) {
+        lastGlobeW = stage.clientWidth;
+        lastGlobeH = stage.clientHeight;
+        globe.width(lastGlobeW).height(lastGlobeH);
+      }
     }
   }
 
@@ -1178,6 +1199,18 @@
       displayItems = displayItems.filter(x => `${x.host} ${x.node} ${x.remoteIP} ${getAppCategory(x).name}`.toLowerCase().includes(q));
     }
 
+    // 空闲快路径：枢纽归属相关的输入集合与视图状态都没变时，跳过整条重建管线
+    // （2s 空转轮询、流量高峰里只更新 lastSeen/rawLogs 的事件，都在这里被省掉）
+    let closedCount = 0;
+    let itemsSig = '';
+    for (const x of displayItems) {
+      itemsSig += x.id + (x.closed ? 'c' : 'a') + (x.host || '') + (x.remoteIP || '') + ';';
+      if (x.closed) closedCount++;
+    }
+    const renderSig = `${mode}|${timeWindow}|${$('map-node').value}|${selectedHub}|${selectedApp}|${searchQuery}|${currentOriginCode}|${locations.size}|${closedCount}|${itemsSig}`;
+    if (!force && renderSig === lastFullRenderSig) return;
+    lastFullRenderSig = renderSig;
+
     if (mode === 'relay') {
       const directGroups = new Map();
       const proxyHops1 = new Map();
@@ -1744,7 +1777,11 @@
     $('map-selection').textContent = selectionText;
     $('map-list-title').textContent = `应用与连接分组 · ${displayItems.length} 条`;
 
-    $('map-connections').innerHTML = sortedAppGroups.map(({ app, count, items: appItems }, index) => {
+    // 右侧面板 innerHTML 全量重建开销大：分组构成/选中态/定位结果没变时跳过
+    const groupsSig = `${selectedApp}|${selectedHub}|${searchQuery}|${locations.size}|${displayItems.length}|${sortedAppGroups.map(g => `${g.app.key}:${g.count}:${g.items.filter(x => x.closed).length}`).join(',')}`;
+    if (groupsSig !== lastGroupsSig) {
+      lastGroupsSig = groupsSig;
+      $('map-connections').innerHTML = sortedAppGroups.map(({ app, count, items: appItems }, index) => {
       const isSelected = selectedApp === app.key;
       const isTopApp = index === 0 && count > 1;
       const appPct = Math.round((count / (displayItems.length || 1)) * 100);
@@ -1776,7 +1813,8 @@
           <div class="map-app-sublist">${subItems}</div>
         </div>
       `;
-    }).join('') || '<p class="map-muted">暂无匹配连接。等待网络活动，或调整上方筛选条件。</p>';
+      }).join('') || '<p class="map-muted">暂无匹配连接。等待网络活动，或调整上方筛选条件。</p>';
+    }
 
     const msg = $('map-message');
     if (msg) {
@@ -2036,6 +2074,8 @@
       lastRingsSig = '';
       lastHubsSig = '';
       lastCountrySig = '';
+      lastFullRenderSig = '';
+      lastGroupsSig = '';
       altitudeSig = '';
       pendingAltitudeSig = '';
       if (globe) focusGlobeOnOrigin(true);

@@ -2143,34 +2143,43 @@
         return ua.split('/')[0] || 'Unknown';
       }
 
-      // Update Top Metrics & Group Filters
+      // Update Top Metrics & Group Filters（单遍统计 + 相同值跳过 DOM 写入）
+      const statCache = {};
+      function setStat(id, val) {
+        if (statCache[id] === val) return;
+        statCache[id] = val;
+        $(id).textContent = val;
+      }
+
       function updateStats() {
         const items = [...state.connections.values()];
-        const activeItems = items.filter(x => !x.closed);
-        const proxyCount = items.filter(x => x.route === 'PROXY').length;
-        const directCount = items.filter(x => x.route === 'DIRECT').length;
-        const rejectCount = items.filter(x => x.route === 'REJECT').length;
+        let activeCount = 0, proxyCount = 0, directCount = 0, rejectCount = 0;
+        for (const x of items) {
+          if (!x.closed) activeCount++;
+          if (x.route === 'PROXY') proxyCount++;
+          else if (x.route === 'DIRECT') directCount++;
+          else if (x.route === 'REJECT') rejectCount++;
+        }
         const total = items.length;
 
-        $('stat-total').textContent = total;
-        $('stat-active-badge').textContent = `${activeItems.length} 活跃`;
+        setStat('stat-total', total);
+        setStat('stat-active-badge', `${activeCount} 活跃`);
 
-        $('stat-proxy').textContent = proxyCount;
-        $('stat-proxy-pct').textContent = total ? `${Math.round((proxyCount / total) * 100)}%` : '0%';
+        setStat('stat-proxy', proxyCount);
+        setStat('stat-proxy-pct', total ? `${Math.round((proxyCount / total) * 100)}%` : '0%');
 
-        $('stat-direct').textContent = directCount;
-        $('stat-direct-pct').textContent = total ? `${Math.round((directCount / total) * 100)}%` : '0%';
+        setStat('stat-direct', directCount);
+        setStat('stat-direct-pct', total ? `${Math.round((directCount / total) * 100)}%` : '0%');
 
-        $('stat-reject').textContent = rejectCount;
-        $('stat-reject-pct').textContent = total ? `${Math.round((rejectCount / total) * 100)}%` : '0%';
+        setStat('stat-reject', rejectCount);
+        setStat('stat-reject-pct', total ? `${Math.round((rejectCount / total) * 100)}%` : '0%');
 
-        $('stat-events').textContent = state.eventCount;
+        setStat('stat-events', state.eventCount);
 
         // Calculate event rate
         const now = Date.now();
         state.recentEventsWindow = state.recentEventsWindow.filter(t => now - t < 2000);
-        const rate = (state.recentEventsWindow.length / 2).toFixed(1);
-        $('stat-event-rate').textContent = `${rate} msg/s`;
+        setStat('stat-event-rate', `${(state.recentEventsWindow.length / 2).toFixed(1)} msg/s`);
 
         // Update group options
         let newGroupsFound = false;
