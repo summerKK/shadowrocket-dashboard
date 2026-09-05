@@ -60,6 +60,7 @@ shadowrocket-dashboard/
   - 多边形过渡动画关闭（`polygonsTransitionDuration(0)`，避免逐帧重建 177 个几何体）；挤出高度更新节流 1.2s；颜色即时更新。
   - 像素比上限 1.5 且随帧率自适应降档至 1.0；`countries.geojson` 已预简化（scripts/simplify-geojson.mjs）。
   - 视觉：双层 canvas 星空微闪、深海蓝球体材质（微高光）、冷环境光 + 暖主光（经 `scene().traverse` 原位修改，不依赖 THREE 命名空间）。
+- **流量烟花**：枢纽连接数增加（= 新流量到达）时在终点迸出一圈粒子。限流约束：每枢纽 1.8s 冷却、全局并发 ≤3、单次 700ms 即逝、暂停时不触发；3D 用 CSS 粒子（粘在枢纽标记上随球转动），2D 用 SMIL 粒子（独立 `#map-bursts` 图层，不被标记 diff 清理）。
 - **主题系统**：基于 CSS 变量 `[data-theme="..."]` 实现 5 套主题（`aurora`、`tokyo-night`、`cyberpunk`、`oled`、`nordic-light`），按 <kbd>T</kbd> 快捷轮换并持久化至 `localStorage`；每套主题带独立 HUD 框线色（`--mc-frame`）。
 - **智能服务与指纹库 (`DOMAIN_APP_MAP`)**：
   - 即使在未开启 MITM 的纯 TCP/TLS 流量下，也能根据目标域名/规则自动识别为 30+ 常见应用徽章（如 ChatGPT, Claude, GitHub, Telegram, YouTube 等）。

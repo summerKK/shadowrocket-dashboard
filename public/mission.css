@@ -663,3 +663,36 @@ tr.table-row.selected td:first-child { box-shadow: inset 2px 0 0 var(--accent-in
 @media (prefers-reduced-motion: reduce) {
   .mc-starfield { animation: none; opacity: 0.8; }
 }
+
+/* ---------- 流量烟花：枢纽到达时的克制粒子绽放 ---------- */
+.globe-marker-dot { position: relative; }
+.mc-burst {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 8;
+}
+.mc-burst i {
+  position: absolute;
+  left: -1.5px;
+  top: -1.5px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--spark-c, #fbbf24);
+  box-shadow: 0 0 6px var(--spark-c, #fbbf24);
+  opacity: 0;
+  animation: mc-spark 0.6s cubic-bezier(0.16, 0.84, 0.44, 1) forwards;
+}
+.mc-burst i.white { background: #ffffff; box-shadow: 0 0 7px #ffffff; }
+@keyframes mc-spark {
+  0% { transform: translate(0, 0) scale(1); opacity: 0.95; }
+  70% { opacity: 0.75; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(0.2); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mc-burst { display: none; }
+}

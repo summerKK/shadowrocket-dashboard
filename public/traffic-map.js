@@ -949,6 +949,106 @@
     }
   }
 
+  // ---------- 流量烟花：枢纽连接数增加时的一圈克制绽放 ----------
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const prevHubCounts = new Map();
+  const burstCooldown = new Map();
+  let activeBursts = 0;
+
+  function detectHubArrivals(hubCounts, mode) {
+    if (!prevHubCounts.size) { // 首帧只建立基线，不放烟花
+      for (const [id, entry] of hubCounts) prevHubCounts.set(id, entry.count);
+      return;
+    }
+    const now = Date.now();
+    let spawned = 0;
+    for (const [id, entry] of hubCounts) {
+      const prev = prevHubCounts.get(id) || 0;
+      if (entry.count > prev && spawned + activeBursts < 3 && now - (burstCooldown.get(id) || 0) > 1800) {
+        burstCooldown.set(id, now);
+        spawnHubBurst(id, entry, mode);
+        spawned++;
+      }
+    }
+    prevHubCounts.clear();
+    for (const [id, entry] of hubCounts) prevHubCounts.set(id, entry.count);
+  }
+
+  function spawnHubBurst(hubId, entry, mode) {
+    activeBursts++;
+    setTimeout(() => { activeBursts--; }, 700);
+    const proxyShare = entry.items.filter(x => x.route === 'PROXY').length;
+    const routeColor = proxyShare * 2 >= entry.items.length
+      ? (mode === 'relay' ? '#a855f7' : '#60a5fa')
+      : '#34d399';
+    const isHot = entry.count / (lastMaxCount || 1) >= 0.75;
+    const sparkColor = isHot ? '#fbbf24' : routeColor;
+
+    if (currentProjection === '3d' && has3DSupport) {
+      const dot = document.querySelector(`#globe-3d-stage .globe-html-marker[data-hub="${CSS.escape(hubId)}"] .globe-marker-dot`);
+      if (dot) spawnCssBurst(dot, sparkColor);
+    } else {
+      const [x, y] = point(entry.hub);
+      spawnSvgBurst(x, y, sparkColor);
+    }
+  }
+
+  function spawnCssBurst(anchor, color) {
+    const burst = document.createElement('div');
+    burst.className = 'mc-burst';
+    for (let i = 0; i < 9; i++) {
+      const spark = document.createElement('i');
+      const angle = (Math.PI * 2 * i) / 9 + Math.random() * 0.6;
+      const dist = 13 + Math.random() * 9;
+      spark.style.setProperty('--tx', `${(Math.cos(angle) * dist).toFixed(1)}px`);
+      spark.style.setProperty('--ty', `${(Math.sin(angle) * dist).toFixed(1)}px`);
+      if (i % 3 === 0) spark.classList.add('white');
+      else spark.style.setProperty('--spark-c', color);
+      spark.style.animationDelay = `${Math.round(Math.random() * 60)}ms`;
+      burst.appendChild(spark);
+    }
+    anchor.appendChild(burst);
+    setTimeout(() => burst.remove(), 750);
+  }
+
+  function spawnSvgBurst(x, y, color) {
+    const layer = $('map-bursts');
+    if (!layer) return;
+    const group = document.createElementNS(SVG_NS, 'g');
+    for (let i = 0; i < 8; i++) {
+      const angle = (Math.PI * 2 * i) / 8 + Math.random() * 0.5;
+      const dist = 12 + Math.random() * 10;
+      const spark = document.createElementNS(SVG_NS, 'circle');
+      spark.setAttribute('cx', x.toFixed(1));
+      spark.setAttribute('cy', y.toFixed(1));
+      spark.setAttribute('r', '1.6');
+      spark.setAttribute('fill', i % 3 === 0 ? '#ffffff' : color);
+      spark.setAttribute('filter', 'url(#map-glow)');
+      const moveX = document.createElementNS(SVG_NS, 'animate');
+      moveX.setAttribute('attributeName', 'cx');
+      moveX.setAttribute('from', x.toFixed(1));
+      moveX.setAttribute('to', (x + Math.cos(angle) * dist).toFixed(1));
+      moveX.setAttribute('dur', '0.55s');
+      moveX.setAttribute('fill', 'freeze');
+      const moveY = document.createElementNS(SVG_NS, 'animate');
+      moveY.setAttribute('attributeName', 'cy');
+      moveY.setAttribute('from', y.toFixed(1));
+      moveY.setAttribute('to', (y + Math.sin(angle) * dist).toFixed(1));
+      moveY.setAttribute('dur', '0.55s');
+      moveY.setAttribute('fill', 'freeze');
+      const fade = document.createElementNS(SVG_NS, 'animate');
+      fade.setAttribute('attributeName', 'opacity');
+      fade.setAttribute('from', '0.95');
+      fade.setAttribute('to', '0');
+      fade.setAttribute('dur', '0.55s');
+      fade.setAttribute('fill', 'freeze');
+      spark.append(moveX, moveY, fade);
+      group.appendChild(spark);
+    }
+    layer.appendChild(group);
+    setTimeout(() => group.remove(), 700);
+  }
+
   function render(force = false) {
     const state = getState();
     $('view-map').classList.toggle('is-paused', state.paused);
@@ -1317,6 +1417,7 @@
     const maxCount = Math.max(...[...hubCounts.values()].map(e => e.count), 1);
     lastMaxCount = maxCount;
     lastTotalLocated = located;
+    detectHubArrivals(hubCounts, mode);
     $('map-count').textContent = items.length;
     $('map-located').textContent = located;
     $('map-unknown').textContent = Math.max(0, items.length - located);
