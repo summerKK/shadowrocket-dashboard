@@ -9,12 +9,12 @@
 适用于 **Shadowrocket (小火箭)** 的现代化本机实时网络连接与流量诊断看板。通过解析 Shadowrocket 本地日志流 (`/api/log`)，提供直观的 3D 流量地球监控、2D 全球拓扑、应用服务分组、路由分流分析、规则匹配诊断与原始日志控制台。
 
 <p align="center">
-  <img src="./docs/images/globe-3d-preview.png" alt="Shadowrocket Connections 3D Polyglobe Traffic Visualizer" width="100%" style="border-radius: 12px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);" />
+  <img src="./docs/images/globe-3d-preview.png?v=1.2" alt="Shadowrocket Connections 3D Polyglobe Traffic Visualizer" width="100%" style="border-radius: 12px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);" />
   <em style="color: #94a3b8; font-size: 13px; margin-top: 8px; display: block;">▲ 3D Polyglobe 实时流量地球与应用服务智能分组面板</em>
 </p>
 
 <p align="center">
-  <img src="./docs/images/map-2d-preview.png" alt="Shadowrocket Connections 2D World Traffic Map" width="100%" style="border-radius: 12px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);" />
+  <img src="./docs/images/map-2d-preview.png?v=1.2" alt="Shadowrocket Connections 2D World Traffic Map" width="100%" style="border-radius: 12px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);" />
   <em style="color: #94a3b8; font-size: 13px; margin-top: 8px; display: block;">▲ 2D 世界网络连接拓扑展开图</em>
 </p>
 
