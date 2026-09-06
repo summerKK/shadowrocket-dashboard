@@ -3,6 +3,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startServer, stopServer } from './server.mjs';
 
+// 恢复 macOS 窗口遮挡检测：窗口被完全遮挡/最小化时 Chromium 自动节流 rAF 与合成器。
+// Electron 默认禁用了该特性（出现在 GPU 进程的 disable-features 里），导致 3D 地球
+// 在被其他窗口盖住时仍满帧渲染。Chromium 规则：同名 feature 在 enable 列表中优先生效。
+app.commandLine.appendSwitch('enable-features', 'MacWebContentsOcclusion');
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 let mainWindow = null;

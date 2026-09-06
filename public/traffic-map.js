@@ -1,6 +1,30 @@
 (() => {
   const $ = id => document.getElementById(id);
   const esc = text => String(text ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  // ProMotion 节流：本应用 rAF 的唯一大户是 globe 渲染循环（120Hz 屏上满帧跑会吃掉半个 GPU）。
+  // 按“回调函数”分桶限帧到 ~40fps：每个循环（globe 主循环 / rings ticker / FPS 监控）
+  // 独立计速、互不抢占；未到间隔时递归重查直到该消费者自己的窗口到期。
+  // three.js 的时钟按真实时间差推进，跳帧后动画速度不变，只是帧率降低。
+  // 注意：CSS/SMIL 动画不走 rAF，不受此影响（SVG 属性动画走主线程重绘，由省电冻结另行覆盖）。
+  const nativeRaf = window.requestAnimationFrame.bind(window);
+  // 动态帧率档位：活跃（新流量/交互）40fps → 流量安静 12s 后 20fps → 45s 无活动冻结。
+  // 渲染成本 ≈ 场景复杂度 × 帧率，安静期降档直接砍半 GPU/CPU。
+  let frameIntervalMs = 1000 / 40;
+  const lastFrameByCb = new WeakMap();
+  window.requestAnimationFrame = (cb) => {
+    const attempt = (now) => {
+      const last = lastFrameByCb.get(cb) || 0;
+      if (now - last >= frameIntervalMs) {
+        lastFrameByCb.set(cb, now);
+        cb(now);
+      } else {
+        nativeRaf(attempt);
+      }
+    };
+    return nativeRaf(attempt);
+  };
+
   let world, loading, lookupBusy = false, geoError = '', selectedHub = '', selectedApp = '', searchQuery = '';
   let lastMaxCount = 1, lastTotalLocated = 1;
   const locations = new Map();
@@ -20,14 +44,129 @@
   let lastRingsSig = '';
   let lastHubsSig = '';
   let lastCountrySig = '';
+  let lastFullRenderSig = '';
+  let lastGroupsSig = '';
+  let lastGlobeW = 0;
+  let lastGlobeH = 0;
   let hoverRafId = null;
 
-  const has3DSupport = typeof Globe === 'function' && (() => {
+  // 省电冻结：持续无新流量且无交互超过 45s 时冻结全部地图动画（globe rAF 循环停止、
+  // 2D SMIL 暂停、渲染管线跳过），空闲 GPU 占用趋近于零；任何数据/指针/键盘活动即时解冻。
+  const IDLE_FREEZE_MS = 45000;
+  let lastActivityTs = Date.now();
+  let idleFrozen = false;
+  function markActivity() {
+    lastActivityTs = Date.now();
+    frameIntervalMs = 1000 / 30; // 任何活动立即回到活跃档（30fps 对慢速自转视觉无感）
+    if (idleFrozen) {
+      idleFrozen = false;
+      if (globe) startFpsMonitor();
+      render();
+    }
+  }
+
+  // 挤出高度（polygonAltitude）会重建几何体，代价高：节流到 1.2s 一次
+  let altitudeSig = '';
+  let pendingAltitudeSig = '';
+  let altitudeTimer = null;
+
+  // 自适应像素比：持续低帧率时从 1.5 降到 1.0，减轻 Retina 填充率压力
+  let pixelRatioCap = Math.min(window.devicePixelRatio || 1, 1.5);
+  let fpsFrames = 0;
+  let fpsLast = 0;
+  let fpsLowStreak = 0;
+
+  const has3DSupport = (() => {
     try {
       const c = document.createElement('canvas');
       return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl')));
     } catch { return false; }
   })();
+
+  // globe.gl 体积较大（1.8MB），按需加载：首次进入 3D 模式才拉取
+  let globeLibPromise = null;
+  function ensureGlobeLib() {
+    if (typeof Globe === 'function') return Promise.resolve(true);
+    if (!globeLibPromise) {
+      globeLibPromise = new Promise((resolve) => {
+        const script = document.createElement('script');
+        script.src = '/map/globe.gl.min.js';
+        script.onload = () => resolve(typeof Globe === 'function');
+        script.onerror = () => resolve(false);
+        document.head.appendChild(script);
+      });
+    }
+    return globeLibPromise;
+  }
+
+  let fpsMonitorRunning = false;
+  function startFpsMonitor() {
+    if (fpsMonitorRunning) return;
+    fpsMonitorRunning = true;
+    const step = (now) => {
+      // 冻结/隐藏期间渲染循环本就停止，监控随之挂起（由 markActivity 重新拉起）
+      if (idleFrozen || document.hidden || !globe) {
+        fpsMonitorRunning = false;
+        fpsFrames = 0;
+        fpsLast = 0;
+        return;
+      }
+      if (!fpsLast) fpsLast = now;
+      fpsFrames++;
+      if (now - fpsLast >= 2000) {
+        const fps = Math.round((fpsFrames * 1000) / (now - fpsLast));
+        fpsFrames = 0;
+        fpsLast = now;
+        // 限帧后健康帧率 ≈ 40fps，阈值须低于它，避免取整抖动误降像素比
+        if (fps > 0 && fps < 30) fpsLowStreak++;
+        else if (fpsLowStreak > 0) fpsLowStreak--;
+        if (fpsLowStreak >= 2 && pixelRatioCap > 1) {
+          pixelRatioCap = 1;
+          fpsLowStreak = 0;
+          try { if (globe) globe.renderer().setPixelRatio(pixelRatioCap); } catch {}
+        }
+      }
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  function scheduleAltitudeUpdate(sig) {
+    pendingAltitudeSig = sig;
+    if (altitudeTimer) return;
+    altitudeTimer = setTimeout(() => {
+      altitudeTimer = null;
+      if (globe && pendingAltitudeSig !== altitudeSig) {
+        altitudeSig = pendingAltitudeSig;
+        try { globe.polygonAltitude(getPolygonAltitude); } catch {}
+      }
+    }, 1200);
+  }
+
+  // 静态星空：两层 canvas 交叠微闪，位于 WebGL 画布之下（被地球遮挡，零 GPU 开销）
+  function ensureStarfield(container) {
+    if (!container || container.querySelector('.mc-starfield')) return;
+    for (let layer = 0; layer < 2; layer++) {
+      const c = document.createElement('canvas');
+      c.className = 'mc-starfield' + (layer ? ' slow' : '');
+      c.width = container.clientWidth || 1024;
+      c.height = container.clientHeight || 640;
+      const ctx = c.getContext('2d');
+      const count = layer ? 120 : 230;
+      for (let i = 0; i < count; i++) {
+        const x = Math.random() * c.width;
+        const y = Math.random() * c.height;
+        const r = Math.random() * (layer ? 0.8 : 1.3) + 0.25;
+        const alpha = (layer ? 0.30 : 0.62) * Math.random() + 0.08;
+        const tint = 190 + Math.floor(Math.random() * 60);
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${tint},${Math.min(255, tint + 12)},255,${alpha.toFixed(2)})`;
+        ctx.fill();
+      }
+      container.insertBefore(c, container.firstChild);
+    }
+  }
 
   let currentProjection = '3d';
   try {
@@ -98,7 +237,19 @@
     'CA_TOR': { id: 'CA_TOR', name: '多伦多 · 加拿大', city: 'Toronto', flag: '🇨🇦', lon: -79.38, lat: 43.65, country: 'CA' },
   };
 
+  // resolveHub 结果缓存：同一连接对象在输入字段或定位结果没变时直接复用，
+  // 避免全量渲染时对每条连接重复跑关键词匹配链
+  const hubMemo = new WeakMap();
   function resolveHub(item, role = 'target') {
+    const key = `${role}|${item.host || ''}|${item.remoteIP || ''}|${item.node || ''}|${item.ua || ''}|${locations.get(item.host) || ''}|${locations.get(item.remoteIP) || ''}`;
+    const cached = hubMemo.get(item);
+    if (cached && cached.key === key) return cached.hub;
+    const hub = resolveHubImpl(item, role);
+    hubMemo.set(item, { key, hub });
+    return hub;
+  }
+
+  function resolveHubImpl(item, role = 'target') {
     const host = (item.host || '').toLowerCase();
     const node = (item.node || '').toLowerCase();
     const remoteIP = (item.remoteIP || '');
@@ -429,7 +580,12 @@
     if (!globe || currentProjection !== '3d') return;
     const stage = $('map-stage-container');
     if (stage && stage.clientWidth > 0 && stage.clientHeight > 0) {
-      globe.width(stage.clientWidth).height(stage.clientHeight);
+      // 尺寸没变时跳过 kapsule setter（避免每次 flush / 2s 轮询的无谓 digest）
+      if (stage.clientWidth !== lastGlobeW || stage.clientHeight !== lastGlobeH) {
+        lastGlobeW = stage.clientWidth;
+        lastGlobeH = stage.clientHeight;
+        globe.width(lastGlobeW).height(lastGlobeH);
+      }
     }
   }
 
@@ -628,19 +784,27 @@
   function initGlobe() {
     if (globeInitialized || !countriesGeoJson || !has3DSupport) return;
     const container = $('globe-3d-stage');
-    if (!container || typeof Globe !== 'function') return;
+    if (!container) return;
+    ensureGlobeLib().then((ok) => {
+      if (!ok) { setProjection('2d', false); return; }
+      if (globeInitialized || currentProjection !== '3d') return;
+      createGlobe(container);
+    });
+  }
 
+  function createGlobe(container) {
     const width = container.clientWidth || 800;
     const height = container.clientHeight || 540;
 
     try {
+      ensureStarfield(container);
       globe = Globe()(container)
         .width(width)
         .height(height)
         .backgroundColor('rgba(0,0,0,0)')
         .showAtmosphere(true)
-        .atmosphereColor('#38bdf8')
-        .atmosphereAltitude(0.24)
+        .atmosphereColor('#4a8cff')
+        .atmosphereAltitude(0.26)
         .showGraticules(true)
         // 3D Country Polygons (Extruded height & neon glow for active traffic)
         .polygonsData(countriesGeoJson.features)
@@ -649,7 +813,9 @@
         .polygonSideColor(getPolygonSideColor)
         .polygonStrokeColor(getPolygonStrokeColor)
         .polygonAltitude(getPolygonAltitude)
-        .polygonsTransitionDuration(200)
+        // 过渡动画会让 globe.gl 逐帧补间/重建 177 个多边形，连接事件一多就是持续卡顿：
+        // 颜色改为即时生效，挤出高度单独节流（见 scheduleAltitudeUpdate）
+        .polygonsTransitionDuration(0)
         .onPolygonHover(feat => {
           const next = feat?.properties?.ISO_A2 ? normalizeCountry(feat.properties.ISO_A2) : null;
           if (hoveredCountry !== next) {
@@ -697,6 +863,7 @@
         .ringMaxRadius('maxR')
         .ringPropagationSpeed('speed')
         .ringRepeatPeriod('period')
+        .ringResolution(24)
         // 3D HTML Markers
         .htmlElementsData([])
         .htmlLat('lat')
@@ -704,17 +871,32 @@
         .htmlAltitude(0.022)
         .htmlElement(createHubElement);
 
-      // Retina pixel ratio capping: 1.5 max cuts GPU fill rate burden in half on Mac Retina displays!
+      // Retina pixel ratio capping + FPS 自适应降档
       if (globe.renderer()) {
-        globe.renderer().setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+        globe.renderer().setPixelRatio(pixelRatioCap);
+        startFpsMonitor();
       }
 
+      // 深海蓝球体 + 微高光；冷环境光 + 暖主光增强立体感（直接改场景内灯光，无需 THREE 命名空间）
       const mat = globe.globeMaterial();
       if (mat && mat.color) {
-        mat.color.setHex(0x070d1e);
-        if (mat.emissive) mat.emissive.setHex(0x02040b);
-        mat.shininess = 25;
+        mat.color.setHex(0x081226);
+        if (mat.emissive && mat.emissive.setHex) mat.emissive.setHex(0x020610);
+        if (mat.specular && mat.specular.setHex) mat.specular.setHex(0x1b3a5c);
+        mat.shininess = 14;
       }
+      try {
+        globe.scene().traverse((obj) => {
+          if (obj.type === 'AmbientLight') {
+            obj.intensity = 1.3;
+            if (obj.color) obj.color.setHex(0xbcd2ff);
+          } else if (obj.type === 'DirectionalLight') {
+            obj.intensity = 1.5;
+            if (obj.color) obj.color.setHex(0xfff2da);
+            obj.position.set(-160, 120, 90);
+          }
+        });
+      } catch {}
 
       const controls = globe.controls();
       if (controls) {
@@ -722,7 +904,7 @@
         controls.dampingFactor = 0.05;
         controls.rotateSpeed = 0.7;
         controls.autoRotate = autoRotateEnabled;
-        controls.autoRotateSpeed = 0.6;
+        controls.autoRotateSpeed = 0.5;
         controls.minDistance = 110;
         controls.maxDistance = 500;
       }
@@ -839,12 +1021,137 @@
     }
   }
 
+  // ---------- 流量烟花：枢纽连接数增加时的一圈克制绽放 ----------
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const prevHubCounts = new Map();
+  const burstCooldown = new Map();
+  let hubItemsCache = new Map(); // hub.id -> 该枢纽的连接列表（弹窗用，随渲染管线重建）
+  let activeBursts = 0;
+
+  function detectHubArrivals(hubCounts, mode) {
+    if (!prevHubCounts.size) { // 首帧只建立基线，不放烟花
+      for (const [id, entry] of hubCounts) prevHubCounts.set(id, entry.count);
+      return;
+    }
+    const now = Date.now();
+    let spawned = 0;
+    for (const [id, entry] of hubCounts) {
+      const prev = prevHubCounts.get(id) || 0;
+      if (entry.count > prev && spawned + activeBursts < 3 && now - (burstCooldown.get(id) || 0) > 1800) {
+        burstCooldown.set(id, now);
+        spawnHubBurst(id, entry, mode);
+        spawned++;
+      }
+    }
+    prevHubCounts.clear();
+    for (const [id, entry] of hubCounts) prevHubCounts.set(id, entry.count);
+  }
+
+  function spawnHubBurst(hubId, entry, mode) {
+    activeBursts++;
+    setTimeout(() => { activeBursts--; }, 700);
+    const proxyShare = entry.items.filter(x => x.route === 'PROXY').length;
+    const routeColor = proxyShare * 2 >= entry.items.length
+      ? (mode === 'relay' ? '#a855f7' : '#60a5fa')
+      : '#34d399';
+    const isHot = entry.count / (lastMaxCount || 1) >= 0.75;
+    const sparkColor = isHot ? '#fbbf24' : routeColor;
+
+    if (currentProjection === '3d' && has3DSupport) {
+      const dot = document.querySelector(`#globe-3d-stage .globe-html-marker[data-hub="${CSS.escape(hubId)}"] .globe-marker-dot`);
+      if (dot) spawnCssBurst(dot, sparkColor);
+    } else {
+      const [x, y] = point(entry.hub);
+      spawnSvgBurst(x, y, sparkColor);
+    }
+  }
+
+  function spawnCssBurst(anchor, color) {
+    const burst = document.createElement('div');
+    burst.className = 'mc-burst';
+    for (let i = 0; i < 9; i++) {
+      const spark = document.createElement('i');
+      const angle = (Math.PI * 2 * i) / 9 + Math.random() * 0.6;
+      const dist = 13 + Math.random() * 9;
+      spark.style.setProperty('--tx', `${(Math.cos(angle) * dist).toFixed(1)}px`);
+      spark.style.setProperty('--ty', `${(Math.sin(angle) * dist).toFixed(1)}px`);
+      if (i % 3 === 0) spark.classList.add('white');
+      else spark.style.setProperty('--spark-c', color);
+      spark.style.animationDelay = `${Math.round(Math.random() * 60)}ms`;
+      burst.appendChild(spark);
+    }
+    anchor.appendChild(burst);
+    setTimeout(() => burst.remove(), 750);
+  }
+
+  function spawnSvgBurst(x, y, color) {
+    const layer = $('map-bursts');
+    if (!layer) return;
+    const group = document.createElementNS(SVG_NS, 'g');
+    for (let i = 0; i < 8; i++) {
+      const angle = (Math.PI * 2 * i) / 8 + Math.random() * 0.5;
+      const dist = 12 + Math.random() * 10;
+      const spark = document.createElementNS(SVG_NS, 'circle');
+      spark.setAttribute('cx', x.toFixed(1));
+      spark.setAttribute('cy', y.toFixed(1));
+      spark.setAttribute('r', '1.6');
+      spark.setAttribute('fill', i % 3 === 0 ? '#ffffff' : color);
+      spark.setAttribute('filter', 'url(#map-glow)');
+      const moveX = document.createElementNS(SVG_NS, 'animate');
+      moveX.setAttribute('attributeName', 'cx');
+      moveX.setAttribute('from', x.toFixed(1));
+      moveX.setAttribute('to', (x + Math.cos(angle) * dist).toFixed(1));
+      moveX.setAttribute('dur', '0.55s');
+      moveX.setAttribute('fill', 'freeze');
+      const moveY = document.createElementNS(SVG_NS, 'animate');
+      moveY.setAttribute('attributeName', 'cy');
+      moveY.setAttribute('from', y.toFixed(1));
+      moveY.setAttribute('to', (y + Math.sin(angle) * dist).toFixed(1));
+      moveY.setAttribute('dur', '0.55s');
+      moveY.setAttribute('fill', 'freeze');
+      const fade = document.createElementNS(SVG_NS, 'animate');
+      fade.setAttribute('attributeName', 'opacity');
+      fade.setAttribute('from', '0.95');
+      fade.setAttribute('to', '0');
+      fade.setAttribute('dur', '0.55s');
+      fade.setAttribute('fill', 'freeze');
+      spark.append(moveX, moveY, fade);
+      group.appendChild(spark);
+    }
+    layer.appendChild(group);
+    setTimeout(() => group.remove(), 700);
+  }
+
   function render(force = false) {
+    if (document.hidden && !force) {
+      // 窗口不可见：暂停 globe 动画与自转（恢复可见后由 visibilitychange 触发 render 续上）
+      if (globe) {
+        try {
+          globe.pauseAnimation();
+          const controls = globe.controls();
+          if (controls) controls.autoRotate = false;
+        } catch {}
+      }
+      return;
+    }
+    // 省电冻结判定：放在最前，让后续的 svg/globe 暂停逻辑统一消费 idleFrozen。
+    // force render（clear/定位/初始加载）语义上视为活跃：强制解除冻结并刷新活跃时间。
+    if (force) {
+      idleFrozen = false;
+      lastActivityTs = Date.now();
+    } else if (Date.now() - lastActivityTs > IDLE_FREEZE_MS) {
+      idleFrozen = true;
+    }
+    // 帧率分档：安静期降到 20fps。安静 = 12s 无新流量/交互，或当前 2s 窗口内事件稀疏
+    // （持续低速心跳的流量也降档——渲染成本 ≈ 场景 × 帧率，与事件量无关）
+    const quiet = (Date.now() - lastActivityTs > 12000) || getState().recentEventsWindow.length < 3;
+    frameIntervalMs = quiet ? 1000 / 15 : 1000 / 30;
     const state = getState();
+    $('view-map').classList.toggle('idle-frozen', idleFrozen);
     $('view-map').classList.toggle('is-paused', state.paused);
     const svg = $('map-svg');
     if (svg) {
-      if (state.paused) {
+      if (state.paused || idleFrozen) {
         try { svg.pauseAnimations(); } catch {}
       } else {
         try { svg.unpauseAnimations(); } catch {}
@@ -854,7 +1161,7 @@
     // 3D Globe animation pause/resume
     if (globe) {
       try {
-        const isGlobeActive = !state.paused && state.activeView === 'map' && currentProjection === '3d';
+        const isGlobeActive = !state.paused && !idleFrozen && state.activeView === 'map' && currentProjection === '3d';
         if (!isGlobeActive) {
           globe.pauseAnimation();
           const controls = globe.controls();
@@ -868,6 +1175,7 @@
     }
 
     if (state.activeView !== 'map' || (state.paused && !force)) return;
+    if (idleFrozen) return; // 冻结期间跳过整条渲染管线
     if (!world || (has3DSupport && !countriesGeoJson)) {
       if (!loading) loading = loadWorld().then(render).catch(error => { geoError = error.message; $('map-message').textContent = geoError; $('map-retry').hidden = false; });
       return;
@@ -933,6 +1241,18 @@
       const q = searchQuery.toLowerCase();
       displayItems = displayItems.filter(x => `${x.host} ${x.node} ${x.remoteIP} ${getAppCategory(x).name}`.toLowerCase().includes(q));
     }
+
+    // 空闲快路径：枢纽归属相关的输入集合与视图状态都没变时，跳过整条重建管线
+    // （2s 空转轮询、流量高峰里只更新 lastSeen/rawLogs 的事件，都在这里被省掉）
+    let closedCount = 0;
+    let itemsSig = '';
+    for (const x of displayItems) {
+      itemsSig += x.id + (x.closed ? 'c' : 'a') + (x.host || '') + (x.remoteIP || '') + (x.node || '') + (x.ua || '') + ';';
+      if (x.closed) closedCount++;
+    }
+    const renderSig = `${mode}|${timeWindow}|${$('map-node').value}|${selectedHub}|${selectedApp}|${searchQuery}|${currentOriginCode}|${locations.size}|${closedCount}|${itemsSig}`;
+    if (!force && renderSig === lastFullRenderSig) return;
+    lastFullRenderSig = renderSig;
 
     if (mode === 'relay') {
       const directGroups = new Map();
@@ -1207,6 +1527,9 @@
     const maxCount = Math.max(...[...hubCounts.values()].map(e => e.count), 1);
     lastMaxCount = maxCount;
     lastTotalLocated = located;
+    detectHubArrivals(hubCounts, mode);
+    hubItemsCache = new Map();
+    for (const [id, entry] of hubCounts) hubItemsCache.set(id, entry.items);
     $('map-count').textContent = items.length;
     $('map-located').textContent = located;
     $('map-unknown').textContent = Math.max(0, items.length - located);
@@ -1385,7 +1708,9 @@
     // 3D Globe Sync (Optimized 60FPS with Strict Dirty-Checking)
     if (globe) {
       const globeRings = [];
-      for (const { hub, count, items: hItems } of hubCounts.values()) {
+      // 波纹环每次扩散都要分配几何体：只保留流量最高的前 8 个枢纽 + 本机
+      const ringHubs = [...hubCounts.values()].sort((a, b) => b.count - a.count).slice(0, 8);
+      for (const { hub, count, items: hItems } of ringHubs) {
         const heatRatio = count / maxCount;
         const isTopHot = heatRatio >= 0.75 && count >= 3;
         const isHot = (heatRatio >= 0.38 || count >= 5) && count > 1;
@@ -1447,7 +1772,8 @@
       }
 
       // Dirty check 1: Arcs (Dual-Layer)
-      const arcsSig = globeArcs.map(a => `${a.startLat.toFixed(1)},${a.startLng.toFixed(1)}->${a.endLat.toFixed(1)},${a.endLng.toFixed(1)}:${a.count}:${a.dashLength}:${a.dashAnimateTime}`).join('|');
+      // 计数按平方根分桶：每条新连接不再触发全部弧线几何体重建（真实流量下 80% 尖峰的来源）
+      const arcsSig = globeArcs.map(a => `${a.startLat.toFixed(1)},${a.startLng.toFixed(1)}->${a.endLat.toFixed(1)},${a.endLng.toFixed(1)}:${Math.round(Math.sqrt(a.count))}:${a.dashLength}:${Math.round(a.dashAnimateTime / 200)}`).join('|');
       if (arcsSig !== lastArcsSig) {
         globe.arcsData(globeArcs);
         lastArcsSig = arcsSig;
@@ -1467,14 +1793,15 @@
         lastHubsSig = hubsSig;
       }
 
-      // Dirty check 4: Country Extrusion Polygons
+      // Dirty check 4: Country Polygons — 颜色即时更新（材质补间，代价低）；
+      // 挤出高度需重建几何体，节流到 1.2s 一次，避免连接风暴时逐帧重建
       const countrySig = [...countryTraffic.entries()].sort().map(([k,v]) => `${k}:${v}`).join(',') + `|origin:${currentOriginCode}|sel:${selectedHub}`;
       if (countrySig !== lastCountrySig) {
         globe
           .polygonCapColor(getPolygonCapColor)
-          .polygonAltitude(getPolygonAltitude)
           .polygonSideColor(getPolygonSideColor)
           .polygonStrokeColor(getPolygonStrokeColor);
+        scheduleAltitudeUpdate(countrySig);
         lastCountrySig = countrySig;
       }
     }
@@ -1498,7 +1825,11 @@
     $('map-selection').textContent = selectionText;
     $('map-list-title').textContent = `应用与连接分组 · ${displayItems.length} 条`;
 
-    $('map-connections').innerHTML = sortedAppGroups.map(({ app, count, items: appItems }, index) => {
+    // 右侧面板 innerHTML 全量重建开销大：分组构成/选中态/定位结果没变时跳过
+    const groupsSig = `${selectedApp}|${selectedHub}|${searchQuery}|${locations.size}|${displayItems.length}|${sortedAppGroups.map(g => `${g.app.key}:${g.count}:${g.items.filter(x => x.closed).length}`).join(',')}`;
+    if (groupsSig !== lastGroupsSig) {
+      lastGroupsSig = groupsSig;
+      $('map-connections').innerHTML = sortedAppGroups.map(({ app, count, items: appItems }, index) => {
       const isSelected = selectedApp === app.key;
       const isTopApp = index === 0 && count > 1;
       const appPct = Math.round((count / (displayItems.length || 1)) * 100);
@@ -1530,7 +1861,8 @@
           <div class="map-app-sublist">${subItems}</div>
         </div>
       `;
-    }).join('') || '<p class="map-muted">暂无匹配连接。等待网络活动，或调整上方筛选条件。</p>';
+      }).join('') || '<p class="map-muted">暂无匹配连接。等待网络活动，或调整上方筛选条件。</p>';
+    }
 
     const msg = $('map-message');
     if (msg) {
@@ -1589,7 +1921,6 @@
   globalThis.TrafficMap = {
     init(stateReader, filteredReader, detail) {
       getState = stateReader; readFiltered = filteredReader; openDetail = detail;
-
       // Pan & Zoom Event Listeners (2D Flat Canvas)
       const stage = $('map-stage-container');
       if (stage) {
@@ -1732,8 +2063,8 @@
           if (target) {
             const hId = target.dataset.hub;
             const hub = TECH_HUBS[hId] || (world?.countries?.[hId] ? { id: hId, name: world.countries[hId].name, city: world.countries[hId].name, flag: getFlag(hId) } : null);
-            const state = getState();
-            const hItems = [...state.connections.values()].filter(x => resolveHub(x, $('map-mode')?.value || 'target')?.id === hId);
+            // O(1) 缓存查找：hubItemsCache 随渲染管线重建，替代每次 mousemove 的全量扫描
+            const hItems = hubItemsCache.get(hId) || [];
             if (hub) showPopover(e, hub, hItems, lastTotalLocated, lastMaxCount);
           }
         });
@@ -1774,9 +2105,17 @@
       setProjection(currentProjection, false);
       $('map-rotate-toggle')?.classList.toggle('active', autoRotateEnabled);
 
+      // 窗口恢复可见时立即恢复渲染（隐藏期间定时器被系统节流到分钟级）
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) markActivity(); });
+
+      // 省电冻结的活跃信号：任何指针/键盘/滚轮活动都会解冻（pointerdown 挂 window，
+      // 否则 stage 外的点击——dock、按钮、命令面板——不会解除冻结）
+      ['pointerdown', 'wheel', 'pointermove', 'keydown'].forEach(evt => window.addEventListener(evt, markActivity, { passive: true }));
+
       setInterval(render, 2000);
     },
     render,
+    markActivity,
     clear() {
       selectedHub = '';
       selectedApp = '';
@@ -1787,6 +2126,10 @@
       lastRingsSig = '';
       lastHubsSig = '';
       lastCountrySig = '';
+      lastFullRenderSig = '';
+      lastGroupsSig = '';
+      altitudeSig = '';
+      pendingAltitudeSig = '';
       if (globe) focusGlobeOnOrigin(true);
       render(true);
     }

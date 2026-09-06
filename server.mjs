@@ -34,7 +34,16 @@ function send(client, event) {
 }
 
 function broadcast(event) {
-  for (const client of clients) send(client, event);
+  if (!clients.size) return;
+  // 序列化一次复用给所有客户端；无客户端时完全跳过
+  const payload = `data: ${JSON.stringify(event)}\n\n`;
+  for (const client of clients) {
+    try {
+      client.write(payload);
+    } catch {
+      clients.delete(client);
+    }
+  }
 }
 
 function flushPendingRule() {
