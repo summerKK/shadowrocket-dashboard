@@ -1999,6 +1999,7 @@
 
       const $ = (id) => document.getElementById(id);
       const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      const jsArg = (value) => esc(JSON.stringify(String(value ?? '')));
 
       // High Performance Throttled Rendering Engine
       let renderTimer = null;
@@ -2258,7 +2259,7 @@
 
       function formatRule(rawRule) {
         if (!rawRule) return '<span style="color:#64748b">—</span>';
-        return `<span class="rule-col" onclick="event.stopPropagation(); quickFilterRule('${esc(rawRule)}')" title="点击筛选规则: ${esc(rawRule)}">${esc(rawRule)}</span>`;
+        return `<span class="rule-col" onclick="event.stopPropagation(); quickFilterRule(${jsArg(rawRule)})" title="点击筛选规则: ${esc(rawRule)}">${esc(rawRule)}</span>`;
       }
 
       function formatOutbound(x) {
@@ -2421,13 +2422,13 @@
           if (!displayHost) displayHost = '—';
 
           return `
-            <tr class="table-row${selected}" onclick="openDrawer('${esc(x.id)}')">
+            <tr class="table-row${selected}" onclick="openDrawer(${jsArg(x.id)})">
               <td>${formatTime(x.timestamp)}</td>
               <td>
                 <div class="host-col">
                   <div class="host-name">
                     <span>${esc(displayHost)}</span>
-                    <button class="copy-btn" onclick="event.stopPropagation(); copyText('${esc(displayHost)}', '域名已复制')" title="复制域名">
+                    <button class="copy-btn" onclick="event.stopPropagation(); copyText(${jsArg(displayHost)}, '域名已复制')" title="复制域名">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                     </button>
                   </div>
@@ -2460,7 +2461,7 @@
                 ${formatApp(x)}
               </td>
               <td style="text-align: right;">
-                <button class="action-btn" onclick="event.stopPropagation(); openDrawer('${esc(x.id)}')">
+                <button class="action-btn" onclick="event.stopPropagation(); openDrawer(${jsArg(x.id)})">
                   详情
                 </button>
               </td>

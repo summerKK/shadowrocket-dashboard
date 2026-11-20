@@ -7,6 +7,8 @@ import { lookupCountry, resolveHost } from './geo.mjs';
 const root = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT || 8787);
 let upstreamUrl = process.env.SHADOWROCKET_LOG_URL || 'http://127.0.0.1:1080/api/log';
+let listenPort = port;
+let serverActive = false;
 const clients = new Set();
 let upstream;
 let reconnectTimer;
@@ -102,9 +104,15 @@ async function connectUpstream() {
       upstream = undefined;
       currentAbortController = undefined;
       clearTimeout(reconnectTimer);
-      reconnectTimer = setTimeout(connectUpstream, 1000);
+      if (serverActive && !controller.signal.aborted) {
+        reconnectTimer = setTimeout(connectUpstream, 1000);
+      }
     }
   }
+}
+
+function allowedOrigins() {
+  return [`http://127.0.0.1:${listenPort}`, `http://localhost:${listenPort}`];
 }
 
 async function readJsonBody(request) {
@@ -129,7 +137,37 @@ async function readJsonBody(request) {
 }
 
 const server = http.createServer(async (request, response) => {
-  const url = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
+  const host = request.headers.host;
+  if (![`127.0.0.1:${listenPort}`, `localhost:${listenPort}`].includes(host)) {
+    response.writeHead(403, { 'Content-Type': 'application/json' });
+    response.end(JSON.stringify({ error: '无效的 Host 请求头' }));
+    return;
+  }
+
+  const url = new URL(request.url, `http://${host}`);
+  const isProtectedRequest = url.pathname === '/events' || url.pathname.startsWith('/api/');
+  if (isProtectedRequest) {
+    const origin = request.headers.origin;
+    if (origin && !allowedOrigins().includes(origin)) {
+      response.writeHead(403, { 'Content-Type': 'application/json' });
+      response.end(JSON.stringify({ error: '禁止跨域访问本地服务' }));
+      return;
+    }
+
+    const fetchSite = request.headers['sec-fetch-site'];
+    if (fetchSite && !['same-origin', 'none'].includes(fetchSite)) {
+      response.writeHead(403, { 'Content-Type': 'application/json' });
+      response.end(JSON.stringify({ error: '禁止跨站请求' }));
+      return;
+    }
+
+    if (url.pathname.startsWith('/api/') && request.method === 'POST'
+      && !String(request.headers['content-type'] || '').toLowerCase().startsWith('application/json')) {
+      response.writeHead(415, { 'Content-Type': 'application/json' });
+      response.end(JSON.stringify({ error: '请求 Content-Type 必须为 application/json' }));
+      return;
+    }
+  }
 
   if (url.pathname === '/api/geo' && request.method === 'POST') {
     try {
@@ -156,7 +194,6 @@ const server = http.createServer(async (request, response) => {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       Connection: 'keep-alive',
-      'Access-Control-Allow-Origin': '*',
     });
     response.write(': connected\n\n');
     clients.add(response);
@@ -309,16 +346,18 @@ export function startServer(customPort = port) {
     server.once('error', reject);
     server.listen(customPort, '127.0.0.1', () => {
       server.removeListener('error', reject);
-      const actualPort = server.address().port;
-      console.log(`\x1b[36m🚀 Shadowrocket Dashboard running at:\x1b[0m \x1b[1;32mhttp://127.0.0.1:${actualPort}\x1b[0m`);
+      listenPort = server.address().port;
+      serverActive = true;
+      console.log(`\x1b[36m🚀 Shadowrocket Dashboard running at:\x1b[0m \x1b[1;32mhttp://127.0.0.1:${listenPort}\x1b[0m`);
       console.log(`\x1b[34m📡 Upstream diagnostic endpoint:\x1b[0m \x1b[33m${upstreamUrl}\x1b[0m\n`);
       connectUpstream();
-      resolve({ server, port: actualPort });
+      resolve({ server, port: listenPort });
     });
   });
 }
 
 export function stopServer() {
+  serverActive = false;
   clearTimeout(reconnectTimer);
   if (currentAbortController) currentAbortController.abort();
   return new Promise((resolve) => server.close(resolve));
@@ -327,6 +366,7 @@ export function stopServer() {
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   startServer(port);
   function handleExit() {
+    serverActive = false;
     clearTimeout(reconnectTimer);
     if (currentAbortController) currentAbortController.abort();
     server.close(() => process.exit(0));

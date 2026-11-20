@@ -42,7 +42,12 @@ async function createWindow(port) {
 
   // Open external links in user's default browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    try {
+      const target = new URL(url);
+      if (target.protocol === 'http:' || target.protocol === 'https:') {
+        shell.openExternal(target.href);
+      }
+    } catch {}
     return { action: 'deny' };
   });
 
