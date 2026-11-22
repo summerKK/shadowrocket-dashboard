@@ -111,8 +111,14 @@ async function connectUpstream() {
   }
 }
 
+function allowedHosts() {
+  return ['127.0.0.1', 'localhost'].flatMap((host) => listenPort === 80
+    ? [host, `${host}:80`]
+    : [`${host}:${listenPort}`]);
+}
+
 function allowedOrigins() {
-  return [`http://127.0.0.1:${listenPort}`, `http://localhost:${listenPort}`];
+  return allowedHosts().map((host) => `http://${host}`);
 }
 
 async function readJsonBody(request) {
@@ -138,7 +144,7 @@ async function readJsonBody(request) {
 
 const server = http.createServer(async (request, response) => {
   const host = request.headers.host;
-  if (![`127.0.0.1:${listenPort}`, `localhost:${listenPort}`].includes(host)) {
+  if (!allowedHosts().includes(host)) {
     response.writeHead(403, { 'Content-Type': 'application/json' });
     response.end(JSON.stringify({ error: '无效的 Host 请求头' }));
     return;
